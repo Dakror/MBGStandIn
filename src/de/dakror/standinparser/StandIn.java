@@ -1,4 +1,4 @@
-package de.dakror.replacementparser;
+package de.dakror.standinparser;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -9,7 +9,7 @@ import com.itextpdf.text.pdf.parser.TextRenderInfo;
 /**
  * @author Maximilian Stark | Dakror
  */
-public class Replacement {
+public class StandIn {
 	Course[] courses;
 	int[] lessons;
 	
@@ -38,7 +38,7 @@ public class Replacement {
 	String courseCache;
 	String lessonCache;
 	
-	public Replacement(ArrayList<TextRenderInfo>[] row) {
+	public StandIn(ArrayList<TextRenderInfo>[] row) {
 		timestamp = System.currentTimeMillis();
 		
 		compile(row);

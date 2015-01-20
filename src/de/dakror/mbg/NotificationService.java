@@ -5,20 +5,23 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat.Builder;
 import android.support.v4.app.NotificationCompat.InboxStyle;
-import de.dakror.replacementparser.Course;
-import de.dakror.replacementparser.InputStreamProvider;
-import de.dakror.replacementparser.Replacement;
-import de.dakror.replacementparser.ReplacementExtractionStrategy;
-import de.dakror.replacementparser.ReplacementParser;
+import android.util.Log;
+import de.dakror.standinparser.Course;
+import de.dakror.standinparser.InputStreamProvider;
+import de.dakror.standinparser.StandIn;
+import de.dakror.standinparser.StandInExtractionStrategy;
+import de.dakror.standinparser.StandInParser;
 
 /**
  * @author Maximilian Stark | Dakror
@@ -29,12 +32,15 @@ public class NotificationService extends Service {
 	 * 
 	 * @author Maximilian Stark | Dakror
 	 */
-	class Notifier extends Thread {
-		HashSet<Replacement> replacements;
+	class Notifier extends Thread implements OnSharedPreferenceChangeListener {
+		public static final String TAG = "Notifier";
+		
+		HashSet<StandIn> standIns;
 		HashSet<Course> courses;
 		
-		public Notifier() {
-			replacements = new HashSet<Replacement>();
+		private Notifier() {
+			standIns = new HashSet<StandIn>();
+			PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
 		}
 		
 		@Override
@@ -52,21 +58,7 @@ public class NotificationService extends Service {
 				
 				SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 				
-				String courses = pref.getString(getString(R.string.courses_id), null);
-				if (courses == null) {
-					// TODO: inform user
-				} else {
-					courses = courses.trim().replace(" ", "");
-					String[] parts = courses.split(",");
-					if (parts.length != this.courses.size()) {
-						for (String part : parts) {
-							Course course = new Course(part);
-							this.courses.add(course);
-						}
-					}
-				}
-				
-				ReplacementExtractionStrategy res = ReplacementParser.obtainDay(new InputStreamProvider() {
+				StandInExtractionStrategy res = StandInParser.obtainDay(new InputStreamProvider() {
 					@Override
 					public InputStream provide(URL url) {
 						try {
@@ -78,43 +70,19 @@ public class NotificationService extends Service {
 					}
 				}, true);
 				
-				HashSet<Replacement> replacements = res.getRelevantReplacements(this.courses);
-				HashSet<Replacement> added = new HashSet<Replacement>();
-				HashSet<Replacement> removed = new HashSet<Replacement>();
+				HashSet<StandIn> newStandIns = res.getRelevantStandIns(courses);
 				
-				for (Replacement r : replacements) {
-					if (!this.replacements.contains(r)) {
-						for (Course c : this.courses) {
-							if (r.isRelevantForCourse(c)) {
-								added.add(r);
-								break;
-							}
-						}
-					}
-				}
+				Set<StandIn> changed = Util.symDifference(standIns, newStandIns);
 				
-				for (Replacement r : this.replacements) {
-					if (!replacements.contains(r)) {
-						for (Course c : this.courses) {
-							if (r.isRelevantForCourse(c)) {
-								removed.add(r);
-								break;
-							}
-						}
-					}
-				}
-				
-				if (added.size() != 0 || removed.size() != 0) {
+				if (changed.size() != 0) {
 					InboxStyle inboxStyle = new InboxStyle();
-					String bigMessage = (added.size() + removed.size()) + " neue Änderungen.";
+					String bigMessage = changed.size() + " neue Änderungen.";
 					inboxStyle.setBigContentTitle(bigMessage);
 					
-					for (Replacement r : added)
-						inboxStyle.addLine(getMessage(r, true));
-					for (Replacement r : removed)
-						inboxStyle.addLine(getMessage(r, false));
+					for (StandIn r : changed)
+						inboxStyle.addLine(getMessage(r, newStandIns.contains(r) /* if the new ones contains it but the old ones dont, it's an addition */));
 					
-					String message = getMessage(added.iterator().next(), true);
+					String message = getMessage(changed.iterator().next(), true);
 					
 					builder.setContentTitle(message);
 					builder.setContentText(getString(R.string.app_name));
@@ -123,16 +91,18 @@ public class NotificationService extends Service {
 					builder.setAutoCancel(true);
 					builder.setTicker(message);
 					
-					if (added.size() + removed.size() > 1) {
-						builder.setNumber(added.size() + removed.size());
+					if (changed.size() > 1) {
+						builder.setNumber(changed.size());
 						builder.setStyle(inboxStyle);
 						builder.setTicker(bigMessage);
 					}
 					
-					this.replacements.clear();
-					this.replacements.addAll(added);
+					standIns.clear();
+					standIns.addAll(Util.intersection(changed, newStandIns));
 					
 					nManager.notify(id, builder.build());
+				} else {
+					Log.d(TAG, "No new standins");
 				}
 				
 				try {
@@ -143,7 +113,7 @@ public class NotificationService extends Service {
 			}
 		}
 		
-		public String getMessage(Replacement r, boolean added) {
+		public String getMessage(StandIn r, boolean added) {
 			Course firstRelevant = null;
 			for (Course c : r.getCourses()) {
 				if (courses.contains(c)) {
@@ -162,12 +132,29 @@ public class NotificationService extends Service {
 			}
 		}
 		
-		public <T> String implode(Iterable<T> array, String glue) {
-			String s = "";
-			for (T elem : array)
-				s += elem + glue;
-			
-			return s.substring(0, s.length() - glue.length());
+		@Override
+		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+			Log.d(TAG, "onSharedPreferenceChanged: " + key);
+			if (key.equals(getString(R.string.courses_id))) {
+				String coursePref = sharedPreferences.getString(getString(R.string.courses_id), null);
+				if (coursePref == null) {
+					Log.d(TAG, "courses = null");
+				} else {
+					coursePref = coursePref.trim().replace(" ", "");
+					
+					HashSet<Course> courses = new HashSet<Course>();
+					for (String part : coursePref.split(","))
+						courses.add(new Course(part));
+					if (!this.courses.equals(courses)) {
+						Set<Course> tmp = Util.intersection(this.courses, courses);
+						this.courses.clear();
+						this.courses.addAll(tmp);
+						Log.d(TAG, "courses changed");
+					} else {
+						Log.d(TAG, "courses stay the same");
+					}
+				}
+			}
 		}
 	}
 	

@@ -1,4 +1,4 @@
-package de.dakror.replacementparser;
+package de.dakror.standinparser;
 
 import java.util.ArrayList;
 

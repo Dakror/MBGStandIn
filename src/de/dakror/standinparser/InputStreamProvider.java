@@ -1,4 +1,4 @@
-package de.dakror.replacementparser;
+package de.dakror.standinparser;
 
 import java.io.InputStream;
 import java.net.URL;

@@ -1,4 +1,4 @@
-package de.dakror.replacementparser;
+package de.dakror.standinparser;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -12,12 +12,12 @@ import com.itextpdf.text.pdf.parser.ImageRenderInfo;
 import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
-public class ReplacementExtractionStrategy implements TextExtractionStrategy {
+public class StandInExtractionStrategy implements TextExtractionStrategy {
 	public static final String DATE_PATTERN = "([0-9]+)\\.([0-9]+)\\.";
 	
 	Calendar c = new GregorianCalendar();
 	
-	HashSet<Replacement> replacements;
+	HashSet<StandIn> standIns;
 	
 	ArrayList<ArrayList<TextRenderInfo>[]> rows = new ArrayList<ArrayList<TextRenderInfo>[]>();
 	
@@ -64,18 +64,18 @@ public class ReplacementExtractionStrategy implements TextExtractionStrategy {
 	void insert(TextRenderInfo info) {
 		int x = Util.x(info);
 		
-		for (int i = 0; i < Replacement.xCoords.length; i++) {
-			if (x >= Replacement.xCoords[i] && x < Replacement.xCoords[i + 1]) {
+		for (int i = 0; i < StandIn.xCoords.length; i++) {
+			if (x >= StandIn.xCoords[i] && x < StandIn.xCoords[i + 1]) {
 				rows.get(num)[i].add(info);
 			}
 		}
 	}
 	
 	/**
-	 * Compiles the collected fragments to the full list of replacements
+	 * Compiles the collected fragments to the full list of standins
 	 */
 	public void compile() {
-		replacements = new HashSet<Replacement>();
+		standIns = new HashSet<StandIn>();
 		
 		// -- remove all wrapped rows -- //
 		for (int i = 0; i < rows.size(); i++) {
@@ -88,7 +88,7 @@ public class ReplacementExtractionStrategy implements TextExtractionStrategy {
 		}
 		
 		for (ArrayList<TextRenderInfo>[] row : rows) {
-			replacements.add(new Replacement(row));
+			standIns.add(new StandIn(row));
 		}
 	}
 	
@@ -106,24 +106,24 @@ public class ReplacementExtractionStrategy implements TextExtractionStrategy {
 		return c;
 	}
 	
-	public HashSet<Replacement> getReplacements() {
-		if (replacements == null) compile();
+	public HashSet<StandIn> getStandIns() {
+		if (standIns == null) compile();
 		
-		return replacements;
+		return standIns;
 	}
 	
-	public HashSet<Replacement> getRelevantReplacements(Course... courses) {
-		return getRelevantReplacements(courses);
+	public HashSet<StandIn> getRelevantStandIns(Course... courses) {
+		return getRelevantStandIns(courses);
 	}
 	
-	public HashSet<Replacement> getRelevantReplacements(Iterable<Course> courses) {
-		if (replacements == null) compile();
+	public HashSet<StandIn> getRelevantStandIns(Iterable<Course> courses) {
+		if (standIns == null) compile();
 		
-		HashSet<Replacement> repl = new HashSet<Replacement>();
-		for (Replacement replacement : replacements) {
+		HashSet<StandIn> repl = new HashSet<StandIn>();
+		for (StandIn standIn : standIns) {
 			for (Course c : courses) {
-				if (replacement.isRelevantForCourse(c)) {
-					repl.add(replacement);
+				if (standIn.isRelevantForCourse(c)) {
+					repl.add(standIn);
 					break;
 				}
 			}
