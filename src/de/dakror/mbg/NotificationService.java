@@ -7,7 +7,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,6 +18,7 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat.Builder;
 import android.support.v4.app.NotificationCompat.InboxStyle;
+import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 import de.dakror.standinparser.Course;
 import de.dakror.standinparser.InputStreamProvider;
@@ -40,6 +43,7 @@ public class NotificationService extends Service {
 		
 		private Notifier() {
 			standIns = new HashSet<StandIn>();
+			courses = new HashSet<Course>();
 			PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
 		}
 		
@@ -50,13 +54,11 @@ public class NotificationService extends Service {
 			int id = 1;
 			
 			Builder builder = new Builder(NotificationService.this);
-			
+			updateCourses();
 			// TODO: load old replacements
 			
 			while (true) {
-				if (courses == null) courses = new HashSet<Course>();
-				
-				SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+				// SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 				
 				StandInExtractionStrategy res = StandInParser.obtainDay(new InputStreamProvider() {
 					@Override
@@ -80,16 +82,24 @@ public class NotificationService extends Service {
 					inboxStyle.setBigContentTitle(bigMessage);
 					
 					for (StandIn r : changed)
-						inboxStyle.addLine(getMessage(r, newStandIns.contains(r) /* if the new ones contains it but the old ones dont, it's an addition */));
+						inboxStyle.addLine(getMessage(r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */));
 					
 					String message = getMessage(changed.iterator().next(), true);
 					
 					builder.setContentTitle(message);
 					builder.setContentText(getString(R.string.app_name));
-					builder.setSmallIcon(R.drawable.ic_launcher);
-					// builder.setDefaults(Notification.DEFAULT_ALL);
+					builder.setSmallIcon(R.drawable.ic_mbg_logo);
+					builder.setDefaults(Notification.DEFAULT_ALL);
 					builder.setAutoCancel(true);
 					builder.setTicker(message);
+					
+					Intent intent = new Intent(NotificationService.this, MBGStandIns.class);
+					
+					TaskStackBuilder stackBuilder = TaskStackBuilder.create(NotificationService.this);
+					stackBuilder.addParentStack(MBGStandIns.class);
+					stackBuilder.addNextIntent(intent);
+					PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+					builder.setContentIntent(pendingIntent);
 					
 					if (changed.size() > 1) {
 						builder.setNumber(changed.size());
@@ -136,23 +146,26 @@ public class NotificationService extends Service {
 		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 			Log.d(TAG, "onSharedPreferenceChanged: " + key);
 			if (key.equals(getString(R.string.courses_id))) {
-				String coursePref = sharedPreferences.getString(getString(R.string.courses_id), null);
-				if (coursePref == null) {
-					Log.d(TAG, "courses = null");
+				updateCourses();
+			}
+		}
+		
+		public void updateCourses() {
+			String coursePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.courses_id), null);
+			if (coursePref == null) {
+				Log.d(TAG, "courses = null");
+			} else {
+				coursePref = coursePref.trim().replace(" ", "");
+				
+				HashSet<Course> courses = new HashSet<Course>();
+				for (String part : coursePref.split(","))
+					courses.add(new Course(part));
+				if (!this.courses.equals(courses)) {
+					this.courses.clear();
+					this.courses.addAll(courses);
+					Log.d(TAG, "courses changed");
 				} else {
-					coursePref = coursePref.trim().replace(" ", "");
-					
-					HashSet<Course> courses = new HashSet<Course>();
-					for (String part : coursePref.split(","))
-						courses.add(new Course(part));
-					if (!this.courses.equals(courses)) {
-						Set<Course> tmp = Util.intersection(this.courses, courses);
-						this.courses.clear();
-						this.courses.addAll(tmp);
-						Log.d(TAG, "courses changed");
-					} else {
-						Log.d(TAG, "courses stay the same");
-					}
+					Log.d(TAG, "courses stay the same");
 				}
 			}
 		}

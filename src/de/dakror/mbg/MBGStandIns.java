@@ -10,7 +10,7 @@ import android.view.MenuItem;
 /**
  * @author Maximilian Stark | Dakror
  */
-public class MBGStandIn extends Activity {
+public class MBGStandIns extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
