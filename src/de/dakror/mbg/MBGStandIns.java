@@ -1,6 +1,7 @@
 package de.dakror.mbg;
 
 import android.app.Activity;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
@@ -29,7 +30,7 @@ public class MBGStandIns extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 			case R.id.settings:
-				getFragmentManager().beginTransaction().replace(android.R.id.content, new SettingsFragment()).commit();
+				getFragmentManager().beginTransaction().add(android.R.id.content, new SettingsFragment()).setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN).setBreadCrumbTitle(R.string.settings).addToBackStack(null).commit();
 				
 			default:
 				return super.onOptionsItemSelected(item);

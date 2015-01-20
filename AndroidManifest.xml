@@ -10,7 +10,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_mbg_logo"
@@ -18,14 +18,16 @@
         android:theme="@android:style/Theme.Holo.Light" >
         <activity
             android:name=".MBGStandIns"
-            android:label="@string/title_activity_mbgstandin">
+            android:label="@string/title_activity_mbgstandin" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name="NotificationService"></service>
+
+        <service android:name=".NotificationService" >
+        </service>
     </application>
 
 </manifest>
