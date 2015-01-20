@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MBG Vertretungsplan</string>
+    <string name="title_activity_mbgstandin">MBG Vertretungsplan</string>
+    <string name="settings">Einstellungen</string>
+    <string name="courses">Kurse / Klassen</string>
+    <string name="courses_summary">Deine Kurse / Klassen. Mit Komma trennen.</string>
+    <string name="courses_id">courses</string>
+    <string name="password_id">password</string>
+    <string name="password">Passwort</string>
+    <string name="password_summary">Das Passwort, um den Vertretungsplan abzurufen.</string>
+</resources>
