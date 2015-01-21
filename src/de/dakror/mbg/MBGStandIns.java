@@ -38,7 +38,7 @@ public class MBGStandIns extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_mbgstandin);
+		setContentView(R.layout.activity_mbgstandins);
 		Intent service = new Intent(this, NotificationService.class);
 		startService(service);
 	}
