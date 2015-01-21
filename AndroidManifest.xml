@@ -18,7 +18,8 @@
         android:theme="@android:style/Theme.Holo.Light" >
         <activity
             android:name=".MBGStandIns"
-            android:label="@string/title_activity_mbgstandin" >
+            android:label="@string/title_activity_mbgstandin"
+            android:launchMode="singleInstance" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -28,6 +29,11 @@
 
         <service android:name=".NotificationService" >
         </service>
+        <activity android:name=".MBGStandIns$SettingsActivity" android:label="@string/settings" android:parentActivityName="de.dakror.mbg.MBGStandIns">
+            <meta-data
+            android:name="android.support.PARENT_ACTIVITY"
+            android:value="de.dakror.mbg.MBGStandIns" />
+        </activity>
     </application>
 
 </manifest>
