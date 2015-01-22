@@ -3,9 +3,9 @@ package de.dakror.mbg;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -37,9 +37,10 @@ public class NotificationService extends Service {
 	 */
 	class Notifier extends Thread implements OnSharedPreferenceChangeListener {
 		public static final String TAG = "Notifier";
+		public static final int INTERVAL = 5000; // 5 minute interval
 		
-		HashSet<StandIn> standIns;
-		HashSet<Course> courses;
+		Set<StandIn> standIns;
+		Set<Course> courses;
 		
 		private Notifier() {
 			standIns = new HashSet<StandIn>();
@@ -49,104 +50,97 @@ public class NotificationService extends Service {
 		
 		@Override
 		public void run() {
-			NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-			
-			int id = 1;
-			
-			Builder builder = new Builder(NotificationService.this);
 			updateCourses();
-			// TODO: load old replacements
+			Set<StandIn> old = Util.loadStandIns(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getStringSet(getString(R.string.standins_is), null));
+			if (old != null) standIns = old;
 			
 			while (true) {
-				// SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-				
-				StandInExtractionStrategy res = StandInParser.obtainDay(new InputStreamProvider() {
-					@Override
-					public InputStream provide(URL url) {
-						try {
-							return getAssets().open("morgen2.pdf");
-						} catch (IOException e) {
-							e.printStackTrace();
-							return null;
-						}
-					}
-				}, true);
-				
-				HashSet<StandIn> newStandIns = res.getRelevantStandIns(courses);
-				
-				Set<StandIn> changed = Util.symDifference(standIns, newStandIns);
-				
-				if (changed.size() != 0) {
-					InboxStyle inboxStyle = new InboxStyle();
-					String bigMessage = changed.size() + " neue Änderungen.";
-					inboxStyle.setBigContentTitle(bigMessage);
-					
-					for (StandIn r : changed)
-						inboxStyle.addLine(getMessage(r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */));
-					
-					String message = getMessage(changed.iterator().next(), true);
-					
-					builder.setContentTitle(message);
-					builder.setContentText(getString(R.string.app_name));
-					builder.setSmallIcon(R.drawable.ic_mbg_logo);
-					builder.setDefaults(Notification.DEFAULT_ALL);
-					builder.setAutoCancel(true);
-					builder.setTicker(message);
-					
-					Intent intent = new Intent(NotificationService.this, MBGStandIns.class);
-					
-					TaskStackBuilder stackBuilder = TaskStackBuilder.create(NotificationService.this);
-					stackBuilder.addParentStack(MBGStandIns.class);
-					stackBuilder.addNextIntent(intent);
-					PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-					builder.setContentIntent(pendingIntent);
-					
-					if (changed.size() > 1) {
-						builder.setNumber(changed.size());
-						builder.setStyle(inboxStyle);
-						builder.setTicker(bigMessage);
-					}
-					
-					standIns.clear();
-					standIns.addAll(Util.intersection(changed, newStandIns));
-					
-					nManager.notify(id, builder.build());
-				} else {
-					Log.d(TAG, "No new standins");
-				}
-				
+				execute();
 				try {
-					Thread.sleep(1000 * 60 * 5); // 5 minute interval
+					Thread.sleep(INTERVAL);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
 		}
 		
-		public String getMessage(StandIn r, boolean added) {
-			Course firstRelevant = null;
-			for (Course c : r.getCourses()) {
-				if (courses.contains(c)) {
-					firstRelevant = c;
-					break;
+		public void execute() {
+			Builder builder = new Builder(NotificationService.this);
+			NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+			
+			int id = 1;
+			
+			StandInExtractionStrategy res = StandInParser.obtainDay(new InputStreamProvider() {
+				@Override
+				public InputStream provide(URL url) {
+					try {
+						return getAssets().open("morgen2.pdf");
+					} catch (IOException e) {
+						e.printStackTrace();
+						return null;
+					}
 				}
+			}, true);
+			
+			HashSet<StandIn> newStandIns = res.getRelevantStandIns(courses);
+			
+			Set<StandIn> changed = new TreeSet<StandIn>(Util.symDifference(standIns, newStandIns));
+			
+			if (changed.size() != 0) {
+				InboxStyle inboxStyle = new InboxStyle();
+				String bigMessage = changed.size() + " neue Änderungen.";
+				inboxStyle.setBigContentTitle(bigMessage);
+				
+				HashSet<String> set = new HashSet<String>();
+				
+				for (StandIn r : changed) {
+					inboxStyle.addLine(Util.getMessage(courses, r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */));
+					set.add(r.serialize());
+				}
+				
+				// saving preferences
+				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
+				
+				String message = Util.getMessage(courses, changed.iterator().next(), true);
+				
+				builder.setContentTitle(message);
+				builder.setContentText(getString(R.string.app_name));
+				builder.setSmallIcon(R.drawable.ic_mbg_logo);
+				builder.setDefaults(Notification.DEFAULT_ALL);
+				builder.setAutoCancel(true);
+				builder.setTicker(message);
+				
+				Intent intent = new Intent(NotificationService.this, MBGStandIns.class);
+				
+				TaskStackBuilder stackBuilder = TaskStackBuilder.create(NotificationService.this);
+				stackBuilder.addParentStack(MBGStandIns.class);
+				stackBuilder.addNextIntent(intent);
+				PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+				builder.setContentIntent(pendingIntent);
+				
+				if (changed.size() > 1) {
+					builder.setContentTitle(bigMessage);
+					builder.setNumber(changed.size());
+					builder.setStyle(inboxStyle);
+					builder.setTicker(bigMessage);
+				}
+				
+				standIns.clear();
+				standIns.addAll(Util.intersection(changed, newStandIns));
+				
+				nManager.notify(id, builder.build());
+			} else {
+				Log.d(TAG, "No new standins");
 			}
 			
-			if (added) {
-				String lessons = Arrays.toString(r.getLessons()).replace(", ", ". - ");
-				String subject = (r.getSubject().equals("---") ? (firstRelevant != null ? ": " + firstRelevant : "") : ": " + r.getSubject());
-				String replace = " bei " + r.getReplacer() + " in " + r.getRoom() + (r.getText() != null && r.getText().length() > 0 ? ": " + r.getText() : "");
-				return lessons.substring(1, lessons.length() - 1) + ". St." + subject + (r.isFree() ? " entfällt" : replace) + ".";
-			} else {
-				return "HAHA";
-			}
 		}
 		
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-			Log.d(TAG, "onSharedPreferenceChanged: " + key);
 			if (key.equals(getString(R.string.courses_id))) {
 				updateCourses();
+				
+				execute();
 			}
 		}
 		

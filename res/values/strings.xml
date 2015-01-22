@@ -9,4 +9,11 @@
     <string name="password_id">password</string>
     <string name="password">Passwort</string>
     <string name="password_summary">Das Passwort, um den Vertretungsplan abzurufen.</string>
+    <string name="standins_is">standins</string>
+    <string name="course">Klasse</string>
+    <string name="lesson">Stunde</string>
+    <string name="free">Entfällt</string>
+    <string name="replacer">Lehrer</string>
+    <string name="subject">Fach</string>
+    <string name="room">Raum</string>
 </resources>

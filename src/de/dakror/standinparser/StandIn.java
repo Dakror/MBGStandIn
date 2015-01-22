@@ -1,15 +1,13 @@
 package de.dakror.standinparser;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 /**
  * @author Maximilian Stark | Dakror
  */
-public class StandIn {
+public class StandIn implements Comparable<StandIn> {
 	Course[] courses;
 	int[] lessons;
 	
@@ -18,11 +16,7 @@ public class StandIn {
 	String subject;
 	String room;
 	
-	long timestamp;
-	
 	String text;
-	
-	boolean courseCaching;
 	
 	/**
 	 * COURSES = 0
@@ -39,25 +33,30 @@ public class StandIn {
 	String lessonCache;
 	
 	public StandIn(ArrayList<TextRenderInfo>[] row) {
-		timestamp = System.currentTimeMillis();
-		
 		compile(row);
+	}
+	
+	public StandIn(String serialized) {
+		if (serialized.startsWith("[")) {
+			serialized = serialized.substring(1, serialized.length() - 1);
+		}
+		String[] parts = serialized.split(", ");
+		courseCache = parts[0];
+		lessonCache = parts[1];
+		loadCoursesAndLessons();
+		free = Boolean.parseBoolean(parts[2]);
+		replacer = parts[3];
+		subject = parts[4];
+		room = parts[5];
+		text = parts.length > 6 ? parts[6] : "";
 	}
 	
 	public void compile(ArrayList<TextRenderInfo>[] row) {
 		courseCache = Util.makeString(row[0]).replace(" ", "");
 		
-		String[] c = courseCache.split(",");
-		courses = new Course[c.length];
-		for (int i = 0; i < c.length; i++)
-			courses[i] = new Course(c[i]);
-		
 		lessonCache = Util.makeString(row[1]).replace(" ", "");
-		String[] l = lessonCache.split("-");
 		
-		lessons = new int[l.length];
-		for (int i = 0; i < l.length; i++)
-			lessons[i] = Integer.parseInt(l[i]);
+		loadCoursesAndLessons();
 		
 		free = Util.makeString(row[2]).length() > 0;
 		
@@ -66,6 +65,20 @@ public class StandIn {
 		room = Util.makeString(row[5]);
 		
 		text = Util.makeString(row[6]);
+	}
+	
+	void loadCoursesAndLessons() {
+		String[] l = lessonCache.split("-");
+		
+		lessons = new int[l.length];
+		for (int i = 0; i < l.length; i++)
+			lessons[i] = Integer.parseInt(l[i]);
+		
+		String[] c = courseCache.split(",");
+		courses = new Course[c.length];
+		for (int i = 0; i < c.length; i++)
+			courses[i] = new Course(c[i]);
+		
 	}
 	
 	public boolean isRelevantForCourse(Course course) {
@@ -104,10 +117,6 @@ public class StandIn {
 		return room;
 	}
 	
-	public long getTimestamp() {
-		return timestamp;
-	}
-	
 	public String getText() {
 		return text;
 	}
@@ -126,17 +135,24 @@ public class StandIn {
 	 * Call only for fully loaded Replacements!
 	 * Otherwise unexpected outcome!
 	 */
-	public Set<String> serialize() {
-		HashSet<String> set = new HashSet<String>();
-		set.add(courseCache);
-		set.add(lessonCache);
-		set.add(Boolean.toString(free));
-		set.add(replacer);
-		set.add(subject);
-		set.add(room);
-		set.add(text);
-		set.add(timestamp + "");
+	public String serialize() {
+		ArrayList<String> list = new ArrayList<String>();
+		list.add(courseCache);
+		list.add(lessonCache);
+		list.add(Boolean.toString(free));
+		list.add(replacer);
+		list.add(subject);
+		list.add(room);
+		list.add(text);
 		
-		return set;
+		String s = list.toString();
+		return s.substring(1, s.length() - 1);
+	}
+	
+	@Override
+	public int compareTo(StandIn another) {
+		if (lessons[0] < another.lessons[0]) return -1;
+		else if (lessons[0] > another.lessons[0]) return 1;
+		else return another.courseCache.compareTo(courseCache);
 	}
 }
