@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -86,27 +86,38 @@ public class NotificationService extends Service {
 			
 			Set<StandIn> changed = new TreeSet<StandIn>(Util.symDifference(standIns, newStandIns));
 			
+			boolean removedSome = false;
+			for (Iterator<StandIn> iter = changed.iterator(); iter.hasNext();) {
+				StandIn s = iter.next();
+				boolean relevant = false;
+				for (Course c : courses) {
+					if (s.isRelevantForCourse(c)) {
+						relevant = true;
+						break;
+					}
+				}
+				
+				if (!relevant) {
+					iter.remove();
+					standIns.remove(s);
+					removedSome = true;
+				}
+			}
+			
 			if (changed.size() != 0) {
 				InboxStyle inboxStyle = new InboxStyle();
 				String bigMessage = changed.size() + " neue Änderungen.";
 				inboxStyle.setBigContentTitle(bigMessage);
 				
-				HashSet<String> set = new HashSet<String>();
+				for (StandIn r : changed)
+					inboxStyle.addLine(Util.getMessage(courses, r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */, true));
 				
-				for (StandIn r : changed) {
-					inboxStyle.addLine(Util.getMessage(courses, r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */));
-					set.add(r.serialize());
-				}
-				
-				// saving preferences
-				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
-				
-				String message = Util.getMessage(courses, changed.iterator().next(), true);
+				String message = Util.getMessage(courses, changed.iterator().next(), true, true);
 				
 				builder.setContentTitle(message);
 				builder.setContentText(getString(R.string.app_name));
 				builder.setSmallIcon(R.drawable.ic_mbg_logo);
-				builder.setDefaults(Notification.DEFAULT_ALL);
+				// builder.setDefaults(Notification.DEFAULT_ALL);
 				builder.setAutoCancel(true);
 				builder.setTicker(message);
 				
@@ -125,7 +136,7 @@ public class NotificationService extends Service {
 					builder.setTicker(bigMessage);
 				}
 				
-				standIns.clear();
+				standIns.removeAll(Util.intersection(changed, standIns));
 				standIns.addAll(Util.intersection(changed, newStandIns));
 				
 				nManager.notify(id, builder.build());
@@ -133,6 +144,15 @@ public class NotificationService extends Service {
 				Log.d(TAG, "No new standins");
 			}
 			
+			// saving preferences
+			if (changed.size() > 0 || removedSome) {
+				HashSet<String> set = new HashSet<String>();
+				for (StandIn s : standIns)
+					set.add(s.serialize());
+				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
+				System.out.println(set);
+				
+			}
 		}
 		
 		@Override

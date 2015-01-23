@@ -58,7 +58,7 @@ public class Util {
 		return set;
 	}
 	
-	public static String getMessage(Set<Course> courses, StandIn r, boolean added) {
+	public static String getMessage(Set<Course> courses, StandIn r, boolean added, boolean withText) {
 		Course firstRelevant = null;
 		for (Course c : r.getCourses()) {
 			if (courses.contains(c)) {
@@ -70,7 +70,7 @@ public class Util {
 		if (added) {
 			String lessons = Arrays.toString(r.getLessons()).replace(", ", ". - ");
 			String subject = (r.getSubject().equals("---") ? (firstRelevant != null ? ": " + firstRelevant : "") : ": " + r.getSubject());
-			String replace = " bei " + r.getReplacer() + " in " + r.getRoom() + (r.getText() != null && r.getText().length() > 0 ? ": " + r.getText() : "");
+			String replace = " bei " + r.getReplacer() + " in " + r.getRoom() + (r.getText() != null && withText && r.getText().length() > 0 ? ": " + r.getText() : "");
 			return lessons.substring(1, lessons.length() - 1) + ". St." + subject + (r.isFree() ? " entfällt" : replace) + ".";
 		} else {
 			return "HAHA";

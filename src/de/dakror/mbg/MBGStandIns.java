@@ -1,5 +1,6 @@
 package de.dakror.mbg;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,11 +12,15 @@ import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import de.dakror.standinparser.Course;
 import de.dakror.standinparser.StandIn;
 
@@ -91,14 +96,49 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 			
 			ListView layout = (ListView) findViewById(R.id.standins_list);
 			
-			String[] str = new String[set.size()];
+			final String[] str = new String[set.size()];
 			int i = 0;
 			for (StandIn s : set) {
-				str[i] = Util.getMessage(courses, s, true);
+				str[i] = Util.getMessage(courses, s, true, false);
 				i++;
 			}
 			
-			layout.setAdapter(new ArrayAdapter<String>(this, R.layout.standins_textview, str));
+			final ArrayList<StandIn> list = new ArrayList<StandIn>(set);
+			
+			layout.setAdapter(new BaseAdapter() {
+				@Override
+				public View getView(int position, View convertView, ViewGroup parent) {
+					LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+					View view = null;
+					if (list.get(position).getText().length() == 0) {
+						view = inflater.inflate(R.layout.standins_textview_alt, null);
+						TextView header = (TextView) view.findViewById(R.id.standins_textview_header_alt);
+						header.setText(str[position]);
+					} else {
+						view = inflater.inflate(R.layout.standins_textview, null);
+						TextView header = (TextView) view.findViewById(R.id.standins_textview_header);
+						header.setText(str[position]);
+						TextView text = (TextView) view.findViewById(R.id.standins_textview_text);
+						text.setText(list.get(position).getText());
+					}
+					return view;
+				}
+				
+				@Override
+				public long getItemId(int position) {
+					return position;
+				}
+				
+				@Override
+				public Object getItem(int position) {
+					return str[position];
+				}
+				
+				@Override
+				public int getCount() {
+					return str.length;
+				}
+			});
 			
 		}
 	}
