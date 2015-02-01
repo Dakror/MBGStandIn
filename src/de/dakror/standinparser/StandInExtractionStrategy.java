@@ -32,11 +32,11 @@ public class StandInExtractionStrategy implements TextExtractionStrategy {
 		int y = Util.y(renderInfo);
 		
 		if (y > 705) return; // filter out header
-		
+			
 		String text = renderInfo.getText().trim();
 		
 		if (text.length() == 0) return; // filter out empty text
-		
+			
 		if (y == 705 && text.matches(DATE_PATTERN)) {
 			Matcher m = Pattern.compile(DATE_PATTERN).matcher(text);
 			m.find();
