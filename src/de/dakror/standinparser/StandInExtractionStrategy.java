@@ -21,6 +21,12 @@ public class StandInExtractionStrategy implements TextExtractionStrategy {
 	
 	ArrayList<ArrayList<TextRenderInfo>[]> rows = new ArrayList<ArrayList<TextRenderInfo>[]>();
 	
+	ArrayList<TextRenderInfo> addInfo = new ArrayList<TextRenderInfo>();
+	String additionalInfo;
+	
+	boolean tableStarted;
+	int tableStartY;
+	
 	int y = 0;
 	int num = -1;
 	
@@ -29,6 +35,7 @@ public class StandInExtractionStrategy implements TextExtractionStrategy {
 	
 	@Override
 	public void renderText(TextRenderInfo renderInfo) {
+		int x = Util.x(renderInfo);
 		int y = Util.y(renderInfo);
 		
 		if (y > 705) return; // filter out header
@@ -37,28 +44,35 @@ public class StandInExtractionStrategy implements TextExtractionStrategy {
 		
 		if (text.length() == 0) return; // filter out empty text
 			
+		if (x == 45 && text.equals("Klasse")) {
+			tableStarted = true;
+			tableStartY = y;
+		}
+		
 		if (y == 705 && text.matches(DATE_PATTERN)) {
 			Matcher m = Pattern.compile(DATE_PATTERN).matcher(text);
 			m.find();
 			
 			c.set(Calendar.DAY_OF_MONTH, Integer.parseInt(m.group(1)));
 			c.set(Calendar.MONTH, Integer.parseInt(m.group(2)));
-		} else if (y <= 637) { // start of actual table
-			if (y == this.y) {
-				insert(renderInfo);
-			} else {
-				num++;
-				this.y = y;
-				
-				@SuppressWarnings("unchecked")
-				ArrayList<TextRenderInfo>[] columns = new ArrayList[7];
-				for (int i = 0; i < 7; i++)
-					columns[i] = new ArrayList<TextRenderInfo>();
-				rows.add(columns);
-				
-				insert(renderInfo);
+		} else if (tableStarted) { // start of actual table
+			if (y < tableStartY) {
+				if (y == this.y) {
+					insert(renderInfo);
+				} else {
+					num++;
+					this.y = y;
+					
+					@SuppressWarnings("unchecked")
+					ArrayList<TextRenderInfo>[] columns = new ArrayList[7];
+					for (int i = 0; i < 7; i++)
+						columns[i] = new ArrayList<TextRenderInfo>();
+					rows.add(columns);
+					
+					insert(renderInfo);
+				}
 			}
-		}
+		} else addInfo.add(renderInfo);
 	}
 	
 	void insert(TextRenderInfo info) {
@@ -90,6 +104,8 @@ public class StandInExtractionStrategy implements TextExtractionStrategy {
 		for (ArrayList<TextRenderInfo>[] row : rows) {
 			standIns.add(new StandIn(row));
 		}
+		
+		additionalInfo = Util.makeStringNL(addInfo);
 	}
 	
 	@Override
@@ -104,6 +120,10 @@ public class StandInExtractionStrategy implements TextExtractionStrategy {
 	
 	public Calendar getCalendar() {
 		return c;
+	}
+	
+	public String getAdditionalInfo() {
+		return additionalInfo;
 	}
 	
 	public HashSet<StandIn> getStandIns() {

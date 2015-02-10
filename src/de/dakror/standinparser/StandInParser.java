@@ -1,6 +1,7 @@
 package de.dakror.standinparser;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -23,15 +24,15 @@ public class StandInParser {
 	 * @throws IOException
 	 */
 	public static void main(String[] args) throws IOException {
-		PdfReader pdf = new PdfReader("in/heute3.pdf");
+		StandInExtractionStrategy sies = obtainDay(new InputStreamProvider() {
+			@Override
+			public InputStream provide(URL url) {
+				return getClass().getResourceAsStream("morgen-4.pdf");
+			}
+		}, false);
 		
-		PdfReaderContentParser contentParser = new PdfReaderContentParser(pdf);
-		StandInExtractionStrategy extractionStrategy = new StandInExtractionStrategy();
-		contentParser.processContent(1, extractionStrategy);
-		
-		extractionStrategy.compile();
-		
-		System.out.println(extractionStrategy.getStandIns());
+		System.out.println(sies.getStandIns().toString().replace(",", ",\n"));
+		System.out.println(sies.getAdditionalInfo());
 	}
 	
 	/**

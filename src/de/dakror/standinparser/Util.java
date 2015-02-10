@@ -2,6 +2,7 @@ package de.dakror.standinparser;
 
 import java.util.ArrayList;
 
+import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 import com.itextpdf.text.pdf.parser.Vector;
 
@@ -22,27 +23,14 @@ public class Util {
 	}
 	
 	public static String makeString(ArrayList<TextRenderInfo> blobs) {
-		String s = "";
+		return makeStringNL(blobs).replace("\n", " ");
+	}
+	
+	public static String makeStringNL(ArrayList<TextRenderInfo> blobs) {
+		SimpleTextExtractionStrategy es = new SimpleTextExtractionStrategy();
+		for (TextRenderInfo i : blobs)
+			es.renderText(i);
 		
-		int x = 0;
-		int y = 0;
-		for (TextRenderInfo i : blobs) {
-			if (s.length() == 0) {
-				s += i.getText();
-				x = Util.x(i) + Util.width(i);
-				y = Util.y(i);
-			} else {
-				int delta = Util.x(i) - x;
-				if (delta <= 1 && y == Util.y(i)) {
-					s += i.getText();
-					x = Util.x(i) + Util.width(i);
-				} else {
-					s += " " + i.getText();
-					x = Util.x(i) + Util.width(i);
-				}
-			}
-		}
-		
-		return s.trim();
+		return es.getResultantText();
 	}
 }
