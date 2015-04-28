@@ -61,7 +61,9 @@ public class StandInParser {
 	
 	public static StandInExtractionStrategy obtainDay(InputStreamProvider provider, boolean today) {
 		try {
-			PdfReader reader = new PdfReader(provider.provide(new URL(url + (today ? StandInParser.today : tomorrow))));
+			InputStream is = provider.provide(new URL(url + (today ? StandInParser.today : tomorrow)));
+			if (is == null) return null;
+			PdfReader reader = new PdfReader(is);
 			PdfReaderContentParser contentParser = new PdfReaderContentParser(reader);
 			
 			StandInExtractionStrategy extractionStrategy = new StandInExtractionStrategy();

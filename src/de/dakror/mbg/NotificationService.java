@@ -1,8 +1,10 @@
 package de.dakror.mbg;
 
-import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.MessageDigest;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -72,15 +74,35 @@ public class NotificationService extends Service {
 			
 			StandInExtractionStrategy res = StandInParser.obtainDay(new InputStreamProvider() {
 				@Override
-				public InputStream provide(URL url) {
+				public InputStream provide(final URL url) {
 					try {
-						return getAssets().open("morgen2.pdf");
-					} catch (IOException e) {
+						MessageDigest md = MessageDigest.getInstance("MD5");
+						
+						String pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null);
+						if (pwd == null) {
+							Log.d(TAG, "Aborting, no password specified!");
+							return null;
+						}
+						HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+						conn.setRequestMethod("POST");
+						conn.setDoOutput(true);
+						conn.setDoInput(true);
+						
+						byte[] md5 = md.digest(pwd.getBytes());
+						BigInteger bi = new BigInteger(md5);
+						conn.getOutputStream().write("pwd=".getBytes());
+						conn.getOutputStream().write(bi.toString(16).getBytes());
+						
+						return conn.getInputStream();
+					} catch (Exception e) {
 						e.printStackTrace();
-						return null;
 					}
+					
+					return null;
 				}
 			}, true);
+			
+			if (res == null) return;
 			
 			HashSet<StandIn> newStandIns = res.getRelevantStandIns(courses);
 			
@@ -160,7 +182,7 @@ public class NotificationService extends Service {
 			if (key.equals(getString(R.string.courses_id))) {
 				updateCourses();
 				
-				execute();
+				// execute();
 			}
 		}
 		
