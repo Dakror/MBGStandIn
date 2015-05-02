@@ -68,6 +68,7 @@ public class StandIn implements Comparable<StandIn> {
 	}
 	
 	void loadCoursesAndLessons() {
+		
 		String[] l = lessonCache.split("-");
 		
 		lessons = new int[l.length];
@@ -90,7 +91,7 @@ public class StandIn implements Comparable<StandIn> {
 	
 	@Override
 	public String toString() {
-		return courseCache + "	|	" + lessonCache + "	|	" + Boolean.toString(free) + "	|	" + replacer + "	|	" + subject + "	|	" + room + "	|	" + text;
+		return "(" + courseCache + "	|	" + lessonCache + "	|	" + Boolean.toString(free) + "	|	" + replacer + "	|	" + subject + "	|	" + room + "	|	" + text + ")";
 	}
 	
 	public Course[] getCourses() {

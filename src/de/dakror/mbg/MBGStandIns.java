@@ -54,11 +54,19 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
 		setContentView(R.layout.activity_mbgstandins);
 		Intent service = new Intent(this, NotificationService.class);
 		startService(service);
 		makeTable();
 		PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
+		
+		boolean firstLaunch = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("firstLaunch", true);
+		if (firstLaunch) {
+			Intent intent = new Intent(this, SettingsActivity.class);
+			startActivity(intent);
+			PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean("firstLaunch", false).apply();
+		}
 	}
 	
 	@Override

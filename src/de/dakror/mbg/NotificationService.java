@@ -39,10 +39,12 @@ public class NotificationService extends Service {
 	 */
 	class Notifier extends Thread implements OnSharedPreferenceChangeListener {
 		public static final String TAG = "Notifier";
-		public static final int INTERVAL = 5000; // 5 minute interval
+		public static final int MAX_COOLDOWN = 5000; // 5 minute interval
 		
 		Set<StandIn> standIns;
 		Set<Course> courses;
+		
+		int cooldown = 0;
 		
 		private Notifier() {
 			standIns = new HashSet<StandIn>();
@@ -57,13 +59,22 @@ public class NotificationService extends Service {
 			if (old != null) standIns = old;
 			
 			while (true) {
-				execute();
+				if (cooldown == 0) {
+					execute();
+					cooldown = MAX_COOLDOWN;
+				}
+				
 				try {
-					Thread.sleep(INTERVAL);
+					Thread.sleep(1);
+					cooldown--;
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
+		}
+		
+		public void requestUpdate() {
+			cooldown = 0;
 		}
 		
 		public void execute() {
@@ -72,10 +83,12 @@ public class NotificationService extends Service {
 			
 			int id = 1;
 			
-			StandInExtractionStrategy res = StandInParser.obtainDay(new InputStreamProvider() {
+			StandInExtractionStrategy res = StandInParser.obtain(new InputStreamProvider() {
 				@Override
 				public InputStream provide(final URL url) {
 					try {
+						Log.d("Notifier", "Fetching " + url);
+						
 						MessageDigest md = MessageDigest.getInstance("MD5");
 						
 						String pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null);
@@ -100,7 +113,7 @@ public class NotificationService extends Service {
 					
 					return null;
 				}
-			}, true);
+			});
 			
 			if (res == null) return;
 			
@@ -182,7 +195,7 @@ public class NotificationService extends Service {
 			if (key.equals(getString(R.string.courses_id))) {
 				updateCourses();
 				
-				// execute();
+				requestUpdate();
 			}
 		}
 		

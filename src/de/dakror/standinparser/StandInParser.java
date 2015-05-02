@@ -2,6 +2,7 @@ package de.dakror.standinparser;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -24,14 +25,29 @@ public class StandInParser {
 	 * @throws IOException
 	 */
 	public static void main(String[] args) throws IOException {
-		StandInExtractionStrategy sies = obtainDay(new InputStreamProvider() {
+		StandInExtractionStrategy sies = StandInParser.obtain(new InputStreamProvider() {
 			@Override
-			public InputStream provide(URL url) {
-				return getClass().getResourceAsStream("morgen-4.pdf");
+			public InputStream provide(final URL url) {
+				try {
+					String pwd = "37a08ed30093a133b1bb4ae0b8f3601f";
+					HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+					conn.setRequestMethod("POST");
+					conn.setDoOutput(true);
+					conn.setDoInput(true);
+					
+					conn.getOutputStream().write("pwd=".getBytes());
+					conn.getOutputStream().write(pwd.getBytes());
+					
+					return conn.getInputStream();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+				return null;
 			}
-		}, false);
+		});
 		
-		System.out.println(sies.getStandIns().toString().replace(",", ",\n"));
+		System.out.println(sies.getStandIns().toString().replace("),", "),\n"));
 		System.out.println(sies.getAdditionalInfo());
 	}
 	
@@ -46,11 +62,12 @@ public class StandInParser {
 		
 		GregorianCalendar c = new GregorianCalendar();
 		
-		if (today != null && today.getCalendar().get(Calendar.DAY_OF_MONTH) == c.get(Calendar.DAY_OF_MONTH)) {
+		// the normal school day is being considered over at say 6PM
+		if (today != null && today.getCalendar().get(Calendar.DAY_OF_MONTH) == c.get(Calendar.DAY_OF_MONTH) && c.get(Calendar.HOUR_OF_DAY) < 18) {
 			return today;
 		} else {
 			StandInExtractionStrategy tomorrow = obtainDay(provider, false);
-			if (tomorrow != null && tomorrow.getCalendar().get(Calendar.DAY_OF_MONTH) == c.get(Calendar.DAY_OF_MONTH)) {
+			if (tomorrow != null) {
 				return tomorrow;
 			} else {
 				System.err.println("Could neither obtain today nor tomorrow!");
@@ -67,7 +84,9 @@ public class StandInParser {
 			PdfReaderContentParser contentParser = new PdfReaderContentParser(reader);
 			
 			StandInExtractionStrategy extractionStrategy = new StandInExtractionStrategy();
-			contentParser.processContent(1, extractionStrategy);
+			for (int i = 1; i <= reader.getNumberOfPages(); i++) {
+				contentParser.processContent(i, extractionStrategy);
+			}
 			return extractionStrategy;
 		} catch (Exception e1) {
 			e1.printStackTrace();

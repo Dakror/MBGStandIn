@@ -98,6 +98,7 @@ public class StandInExtractionStrategy implements TextExtractionStrategy {
 				for (int j = 0; j < row.length; j++)
 					rows.get(i - 1)[j].addAll(row[j]);
 				rows.remove(i);
+				i--;
 			}
 		}
 		
