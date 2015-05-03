@@ -65,7 +65,9 @@ class StandInParser {
 		$filename = $this->getFilename($today);
 		
 		if(time() - @filemtime($filename) > self::INTERVAL) {
-			$this->store($this->parseAllPages($this->fetchFile($today, $password), $password), true);
+			$table = $this->parseAllPages($this->fetchFile($today, $password), $password);
+			$table->today = $today;
+			$this->store($table, true);
 		}
 	}
 	
