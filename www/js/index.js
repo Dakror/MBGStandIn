@@ -19,9 +19,6 @@
 var app = {
     // Application Constructor
     initialize: function() {
-				require(['../../StandInParser'], function(parser) {
-					console.log(parser.hello());
-				});
         this.bindEvents();
     },
     // Bind Event Listeners
