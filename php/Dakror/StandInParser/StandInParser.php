@@ -6,7 +6,7 @@ require_once "StandInTable.php";
 class StandInParser {
 	const DATE_PATTERN = "/([0-9]+)\\.([0-9]+)\\./";
 	
-	const INTERVAL = 60; // 1 minute
+	const INTERVAL = 3000000; // 5 minutes // 300
 	
 	public function fetchFile($today, $pwd) {
 		$ch = curl_init();
@@ -47,7 +47,7 @@ class StandInParser {
 		return $table;
 	}
 	
-	public function getFilename($today){
+	public function getFilename($today) {
 		return "pages/".($today ? "today" : "tomorrow").".php";
 	}
 	
@@ -56,9 +56,31 @@ class StandInParser {
 
 		$filename = $this->getFilename($table->today);
 		
-		if($lazy || time() - filemtime($filename) > self::INTERVAL) { // 1 minute interval
-			file_put_contents($filename, "<?php\n$".($table->today ? "today" : "tomorrow")."= '".serialize($table)."';\n?>", LOCK_EX);
-		} elseif(__DEBUG__) echo "$filename up to date";
+		if($lazy || time() - filemtime($filename) > self::INTERVAL) {
+			file_put_contents($filename, "<?php\nconst".($table->today ? "__TODAY__" : "__TOMORROW__")."= '".serialize($table)."';\n?>", LOCK_EX);
+		} elseif(__DEBUG__) echo "$filename up to date<br>";
+	}
+	
+	public function load() {
+		$now = getdate();
+		
+		$today = unserialize(__TODAY__);
+		$tomorrow = unserialize(__TOMORROW__);
+		
+		if($this->isSameDay($now, $today)) {
+			if($now["hours"] > 18 && $this->isFutureDay($date, $tomorrow) /* better safe than sorry. */) return $tomorrow; // after school show the standins for the next day
+			return $today;
+		} else {
+			return $tomorrow;
+		}
+	} 
+	
+	public function isSameDay($date, $table) {
+		return $table->date[0] == $date["mon"] && $table->date[1] == $date["mday"];
+	}
+	
+	public function isFutureDay($date, $table) {
+		return $table->date[0] > $date["mon"] || ($table->date[0] == $date["mon"] && $table->date[1] > $date["mday"]);
 	}
 	
 	public function _update($today, $password) {
@@ -68,7 +90,7 @@ class StandInParser {
 			$table = $this->parseAllPages($this->fetchFile($today, $password), $password);
 			$table->today = $today;
 			$this->store($table, true);
-		}
+		} elseif(__DEBUG__) echo "$filename up to date<br>";
 	}
 	
 	public function update($password) {
@@ -103,7 +125,7 @@ class StandInParser {
 			if($list_started) {
 				if(count($p) < 5) {
 					if($standin) {
-						if($standin->expects_more_courses) {
+						if($standin->isExpectingMoreCourses()) {
 							$standin->addCourse($p[0]);
 							if(__DEBUG__) echo "<font color=green>$tok</font><br>";
 						} else {
@@ -129,7 +151,7 @@ class StandInParser {
 								$course = $e;
 								$standin->addCourse($e);
 
-								while($standin->expects_more_courses && Course::isCourse($p[0])) {
+								while($standin->isExpectingMoreCourses() && Course::isCourse($p[0])) {
 									$e = array_shift($p);
 									$standin->addCourse($e);
 								}

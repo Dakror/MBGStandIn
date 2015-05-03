@@ -1,8 +1,9 @@
 <?php
+require_once "iJson.php";
 /**
  * @author Maximilian Stark | Dakror
  */
-class Course {
+class Course implements iJson {
 	const Q_LEVEL_PATTERN = "/([12])([a-zA-Z]+)([1-9]+)/";
 	const DEFAULT_PATTERN = "/([0-9]+)([a-zA-Z])/";
 	
@@ -44,6 +45,21 @@ class Course {
 	
 	public static function isCourse($string) {
 		return preg_match(Course::Q_LEVEL_PATTERN, $string) || preg_match(Course::DEFAULT_PATTERN, $string);
+	}
+	
+	public static function toCourseArray($string) {
+		$src = explode(",", $string);
+		$out = array();
+		
+		foreach($src as $s) {
+			array_push($out, new Course($s));
+		}
+		
+		return $out;
+	}
+	
+	public function toJson() {
+		return $this->desc;
 	}
 }
 ?>

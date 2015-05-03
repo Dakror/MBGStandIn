@@ -19,8 +19,19 @@ class StandInTable {
 	
 	public function getStandIns() { return $this->standins; }
 	
+	public function getRelevantStandIns($courses) {
+		$out = array();
+		foreach($this->standins as $standin) {
+			if(count(array_intersect($courses, $standin->courses)) > 0) {
+				array_push($out, $standin);
+			}
+		}
+		
+		return $out;
+	}
+	
 	public function __toString() {
-		return implode(".", $this->date)."<br>$this->info<br>[\t".implode("<br>\t", $this->standins)."<br>]";
+		return implode(".", $this->date)."<br>$this->info<br>[\t".implode("<br>", $this->standins)."<br>]";
 	}
 }
 ?>
