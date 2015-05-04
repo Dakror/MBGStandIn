@@ -15,7 +15,6 @@
     <gap:platform name="android" />
     <gap:platform name="winphone" />
     
-    
     <preference name="permissions" value="none" />
     <preference name="orientation" value="portrait" />
     <preference name="target-device" value="universal" />
@@ -62,10 +61,10 @@
     <icon gap:platform="android" gap:qualifier="hdpi" src="www/res/icon/icon-72.png" />
     <icon gap:platform="android" gap:qualifier="xhdpi" src="www/res/icon/icon-96.png" />
     <icon gap:platform="android" gap:qualifier="xxhdpi" src="www/res/icon/icon-144.png" />
-    <icon gap:platform="ios" height="48" src="www/res/icon/icon-48.png" width="48" />
+    <!--icon gap:platform="ios" height="48" src="www/res/icon/icon-48.png" width="48" />
     <icon gap:platform="ios" height="72" src="www/res/icon/icon-72.png" width="72" />
     <icon gap:platform="ios" height="96" src="www/res/icon/icon-96.png" width="96" />
-    <icon gap:platform="ios" height="144" src="www/res/icon/icon-144.png" width="144" />
+    <icon gap:platform="ios" height="144" src="www/res/icon/icon-144.png" width="144" /-->
     <icon gap:platform="winphone" src="www/res/icon/icon-48.png" />
     <icon gap:platform="winphone" gap:role="background" src="www/res/icon/icon-144.png" />
     
@@ -81,9 +80,9 @@
     <gap:splash gap:platform="ios" height="768" src="www/res/screen/ios/screen-ipad-landscape.png" width="1024" />
     <gap:splash gap:platform="winphone" src="www/res/screen/windows-phone/screen-portrait.jpg" /-->
     
-    <access origin="*" />
+    <access origin="http://dakror.de" />
     
-    <plugin name="cordova-plugin-whitelist" version="1" />
+    <!--plugin name="cordova-plugin-whitelist" version="1" /-->
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <allow-intent href="tel:*" />
@@ -93,8 +92,8 @@
     <platform name="android">
         <allow-intent href="market:*" />
     </platform>
-    <platform name="ios">
+    <!--platform name="ios">
         <allow-intent href="itms:*" />
         <allow-intent href="itms-apps:*" />
-    </platform>
+    </platform-->
 </widget>

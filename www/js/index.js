@@ -16,16 +16,35 @@ var app = {
 	onDeviceReady: function() {
 		//app.receivedEvent('deviceready');
 		
-		/*var password = app.getMD5(prompt("Password"));
-		
-		$.post("http://dakror.de/MBGStandIns/", {
+		$.support.cors = true;
+
+		/*$.post("http://dakror.de/MBGStandIns/", {
 			"courses": "9D,10A,1E5",
 			"pwd": password
 		}, function(data) {
-			console.log(data);
+			console.log("wfgweegf");
 		});*/
 		
-		var data = [{
+		$.ajax({
+			type: "POST",
+			url: "http://dakror.de/MBGStandIns/index.php",
+			timeout: 60 * 1000,
+			data: {
+				courses: "9D",
+				pwd: app.getMD5("einstein")
+			},
+			fail: function (a, b, c) {
+				console.log(b + '|' + c);
+			},
+			success: function(data) {
+				console.log("ata");
+			},
+			done: function(data) {
+				console.log("g");
+			}
+		});
+		
+		/*var data = [{
 				"courses": ["1D4"],
 				"lessons": ["1", "2"],
 				"free": true
@@ -37,7 +56,7 @@ var app = {
 				"replacer": "EVA",
 				"room": "205"
 			}
-		];
+		];*/
 	},
 	getMD5: function(text) {
 		return CryptoJS.MD5(text).toString(CryptoJS.enc.Hex);
