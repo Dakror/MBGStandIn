@@ -54,7 +54,8 @@
     
     
     <gap:plugin name="de.appplant.cordova.plugin.local-notification" />
-    
+    <gap:plugin name="de.appplant.cordova.plugin.background-mode" />
+	
     
     <icon src="icon.png" />
     <icon gap:platform="android" gap:qualifier="mdpi" src="www/res/icon/icon-48.png" />

@@ -14,3 +14,23 @@ body {
     padding:0px;
     width:100%;
 }
+
+#titleHeader {
+	background-image: url("../img/header.png");
+	height: 2.5em;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width:100%;
+	z-index: 1337; /* Kappa */
+	padding: 0.25em;
+}
+
+#titleHeader .title {
+	text-align: center;
+  font-weight: 400;
+  color: #fff;
+  font-size: 1.2em;
+  padding: 0.5em;
+  text-shadow: 0 0 0.2em #666;
+}
