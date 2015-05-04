@@ -6,7 +6,7 @@ require_once "StandInTable.php";
 class StandInParser {
 	const DATE_PATTERN = "/([0-9]+)\\.([0-9]+)\\./";
 	
-	const INTERVAL = 3000000; // 5 minutes // 300
+	const INTERVAL = 300; // 5 minutes
 	
 	public function fetchFile($today, $pwd) {
 		$ch = curl_init();
@@ -57,7 +57,7 @@ class StandInParser {
 		$filename = $this->getFilename($table->today);
 		
 		if($lazy || time() - filemtime($filename) > self::INTERVAL) {
-			file_put_contents($filename, "<?php\nconst".($table->today ? "__TODAY__" : "__TOMORROW__")."= '".serialize($table)."';\n?>", LOCK_EX);
+			file_put_contents($filename, "<?php\nconst ".($table->today ? "__TODAY__" : "__TOMORROW__")." = '".serialize($table)."';\n?>", LOCK_EX);
 		} elseif(__DEBUG__) echo "$filename up to date<br>";
 	}
 	

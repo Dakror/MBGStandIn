@@ -10,7 +10,7 @@ function apply_iJson($array) {
 	$out = array();
 
 	foreach($array as $elem) {
-		array_push($out, $elem->toJson());
+		array_push($out, $elem instanceof iJson ? $elem->toJson() : $elem);
 	}
 
 	return $out;
