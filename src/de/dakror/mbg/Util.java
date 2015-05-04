@@ -3,10 +3,6 @@ package de.dakror.mbg;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
-
-import de.dakror.standinparser.Course;
-import de.dakror.standinparser.StandIn;
 
 /**
  * @author Maximilian Stark | Dakror
@@ -48,19 +44,9 @@ public class Util {
 		return setA.containsAll(setB);
 	}
 	
-	public static Set<StandIn> loadStandIns(Set<String> serializedSet) {
-		if (serializedSet == null) return null;
-		TreeSet<StandIn> set = new TreeSet<StandIn>();
-		
-		for (String s : serializedSet)
-			set.add(new StandIn(s));
-		
-		return set;
-	}
-	
-	public static String getMessage(Set<Course> courses, StandIn r, boolean added, boolean withText) {
-		Course firstRelevant = null;
-		for (Course c : r.getCourses()) {
+	public static String getMessage(Set<String> courses, StandIn r, boolean added, boolean withText) {
+		String firstRelevant = null;
+		for (String c : r.courses) {
 			if (courses.contains(c)) {
 				firstRelevant = c;
 				break;
@@ -68,10 +54,10 @@ public class Util {
 		}
 		
 		if (added) {
-			String lessons = Arrays.toString(r.getLessons()).replace(", ", ". - ");
-			String subject = (r.getSubject().equals("---") ? (firstRelevant != null ? ": " + firstRelevant : "") : ": " + r.getSubject());
-			String replace = " bei " + r.getReplacer() + " in " + r.getRoom() + (r.getText() != null && withText && r.getText().length() > 0 ? ": " + r.getText() : "");
-			return lessons.substring(1, lessons.length() - 1) + ". St." + subject + (r.isFree() ? " entfällt" : replace) + ".";
+			String lessons = Arrays.toString(r.lessons).replace(", ", ". - ");
+			String subject = (r.subject.equals("---") ? (firstRelevant != null ? ": " + firstRelevant : "") : ": " + r.subject);
+			String replace = " bei " + r.replacer + " in " + r.room + (r.text != null && withText && r.text.length() > 0 ? ": " + r.text : "");
+			return lessons.substring(1, lessons.length() - 1) + ". St." + subject + (r.free ? " entfällt" : replace) + ".";
 		} else {
 			return "HAHA";
 			// TODO: do something

@@ -1,6 +1,7 @@
 package de.dakror.mbg;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -9,6 +10,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.json.JSONObject;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -22,11 +25,6 @@ import android.support.v4.app.NotificationCompat.Builder;
 import android.support.v4.app.NotificationCompat.InboxStyle;
 import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
-import de.dakror.standinparser.Course;
-import de.dakror.standinparser.InputStreamProvider;
-import de.dakror.standinparser.StandIn;
-import de.dakror.standinparser.StandInExtractionStrategy;
-import de.dakror.standinparser.StandInParser;
 
 /**
  * @author Maximilian Stark | Dakror
@@ -42,13 +40,13 @@ public class NotificationService extends Service {
 		public static final int MAX_COOLDOWN = 5000; // 5 minute interval
 		
 		Set<StandIn> standIns;
-		Set<Course> courses;
+		Set<String> courses;
 		
 		int cooldown = 0;
 		
 		private Notifier() {
 			standIns = new HashSet<StandIn>();
-			courses = new HashSet<Course>();
+			courses = new HashSet<String>();
 			PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
 		}
 		
@@ -83,39 +81,30 @@ public class NotificationService extends Service {
 			
 			int id = 1;
 			
-			StandInExtractionStrategy res = StandInParser.obtain(new InputStreamProvider() {
-				@Override
-				public InputStream provide(final URL url) {
-					try {
-						Log.d("Notifier", "Fetching " + url);
-						
-						MessageDigest md = MessageDigest.getInstance("MD5");
-						
-						String pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null);
-						if (pwd == null) {
-							Log.d(TAG, "Aborting, no password specified!");
-							return null;
-						}
-						HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-						conn.setRequestMethod("POST");
-						conn.setDoOutput(true);
-						conn.setDoInput(true);
-						
-						byte[] md5 = md.digest(pwd.getBytes());
-						BigInteger bi = new BigInteger(md5);
-						conn.getOutputStream().write("pwd=".getBytes());
-						conn.getOutputStream().write(bi.toString(16).getBytes());
-						
-						return conn.getInputStream();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					
-					return null;
-				}
-			});
+			URL url = new URL("http://dakror.de/MBGStandIns/");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("POST");
+			conn.setDoOutput(true);
 			
-			if (res == null) return;
+			String pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null);
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			byte[] md5 = md.digest(pwd.getBytes());
+			BigInteger bi = new BigInteger(md5);
+			
+			String c = "";
+			for (String s : courses)
+				c += s + ",";
+			c = c.substring(0, c.length() - 2);
+			
+			conn.getOutputStream().write(("courses=" + c + "&pwd=").getBytes());
+			conn.getOutputStream().write(bi.toString(16).getBytes());
+			
+System.out.println(conn.getContent());
+			
+			JSONObject json = new JSONObject();
+			OutputStream
+			conn.getInputStream();
+			
 			
 			HashSet<StandIn> newStandIns = res.getRelevantStandIns(courses);
 			
@@ -186,7 +175,6 @@ public class NotificationService extends Service {
 					set.add(s.serialize());
 				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
 				System.out.println(set);
-				
 			}
 		}
 		
@@ -228,5 +216,16 @@ public class NotificationService extends Service {
 	@Override
 	public IBinder onBind(Intent intent) {
 		return null;
+	}
+	
+	public static void copyInputStream(InputStream is, OutputStream out) throws Exception {
+		byte[] buffer = new byte[2048];
+		int len = is.read(buffer);
+		while (len != -1) {
+			out.write(buffer, 0, len);
+			len = is.read(buffer);
+		}
+		is.close();
+		out.close();
 	}
 }
