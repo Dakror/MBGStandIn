@@ -40,5 +40,7 @@ $courses = Course::toCourseArray(strtoupper($courses));
 
 $standins = $table->getRelevantStandIns($courses);
 
-die(json_encode(apply_iJson($standins)));
+die(json_encode(apply_iJson(array("date" => implode(".", $table->date),
+																 "info" => $table->info,
+																 "standins" => $standins))));
 ?>
