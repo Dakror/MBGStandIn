@@ -11,7 +11,7 @@
     
     <content src="index.html" />
     
-    <gap:platform name="ios" />
+    <!--gap:platform name="ios" /-->
     <gap:platform name="android" />
     <gap:platform name="winphone" />
     
