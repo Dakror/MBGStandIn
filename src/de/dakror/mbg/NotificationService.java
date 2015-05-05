@@ -1,5 +1,6 @@
 package de.dakror.mbg;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -7,14 +8,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
-import java.util.TreeSet;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -22,9 +21,6 @@ import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat.Builder;
-import android.support.v4.app.NotificationCompat.InboxStyle;
-import android.support.v4.app.TaskStackBuilder;
-import android.util.Log;
 
 /**
  * @author Maximilian Stark | Dakror
@@ -52,9 +48,9 @@ public class NotificationService extends Service {
 		
 		@Override
 		public void run() {
-			updateCourses();
-			Set<StandIn> old = Util.loadStandIns(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getStringSet(getString(R.string.standins_is), null));
-			if (old != null) standIns = old;
+			// updateCourses();
+			// Set<StandIn> old = Util.loadStandIns(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getStringSet(getString(R.string.standins_is), null));
+			// if (old != null) standIns = old;
 			
 			while (true) {
 				if (cooldown == 0) {
@@ -75,18 +71,17 @@ public class NotificationService extends Service {
 			cooldown = 0;
 		}
 		
-		public void execute() {
-			Builder builder = new Builder(NotificationService.this);
-			NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-			
-			int id = 1;
-			
+		public JSONObject fetchData() throws Exception {
 			URL url = new URL("http://dakror.de/MBGStandIns/");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("POST");
 			conn.setDoOutput(true);
+			conn.setDoInput(true);
 			
 			String pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null);
+			
+			if (pwd == null) return null;
+			
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			byte[] md5 = md.digest(pwd.getBytes());
 			BigInteger bi = new BigInteger(md5);
@@ -94,118 +89,128 @@ public class NotificationService extends Service {
 			String c = "";
 			for (String s : courses)
 				c += s + ",";
-			c = c.substring(0, c.length() - 2);
+			c = c.substring(0, Math.max(0, c.length() - 2));
 			
 			conn.getOutputStream().write(("courses=" + c + "&pwd=").getBytes());
 			conn.getOutputStream().write(bi.toString(16).getBytes());
 			
-System.out.println(conn.getContent());
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			copyInputStream(conn.getInputStream(), baos);
 			
-			JSONObject json = new JSONObject();
-			OutputStream
-			conn.getInputStream();
+			return new JSONObject(new String(baos.toByteArray()));
+		}
+		
+		public void execute() {
+			Builder builder = new Builder(NotificationService.this);
+			NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 			
+			int id = 1;
 			
-			HashSet<StandIn> newStandIns = res.getRelevantStandIns(courses);
-			
-			Set<StandIn> changed = new TreeSet<StandIn>(Util.symDifference(standIns, newStandIns));
-			
-			boolean removedSome = false;
-			for (Iterator<StandIn> iter = changed.iterator(); iter.hasNext();) {
-				StandIn s = iter.next();
-				boolean relevant = false;
-				for (Course c : courses) {
-					if (s.isRelevantForCourse(c)) {
-						relevant = true;
-						break;
-					}
-				}
+			try {
+				JSONObject data = fetchData();
 				
-				if (!relevant) {
-					iter.remove();
-					standIns.remove(s);
-					removedSome = true;
-				}
+				if (data == null) return;
+				
+				JSONArray standins = data.getJSONArray("standins");
+				
+				System.out.println(data);
+				
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-			
-			if (changed.size() != 0) {
-				InboxStyle inboxStyle = new InboxStyle();
-				String bigMessage = changed.size() + " neue Änderungen.";
-				inboxStyle.setBigContentTitle(bigMessage);
-				
-				for (StandIn r : changed)
-					inboxStyle.addLine(Util.getMessage(courses, r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */, true));
-				
-				String message = Util.getMessage(courses, changed.iterator().next(), true, true);
-				
-				builder.setContentTitle(message);
-				builder.setContentText(getString(R.string.app_name));
-				builder.setSmallIcon(R.drawable.ic_mbg_logo);
-				// builder.setDefaults(Notification.DEFAULT_ALL);
-				builder.setAutoCancel(true);
-				builder.setTicker(message);
-				
-				Intent intent = new Intent(NotificationService.this, MBGStandIns.class);
-				
-				TaskStackBuilder stackBuilder = TaskStackBuilder.create(NotificationService.this);
-				stackBuilder.addParentStack(MBGStandIns.class);
-				stackBuilder.addNextIntent(intent);
-				PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-				builder.setContentIntent(pendingIntent);
-				
-				if (changed.size() > 1) {
-					builder.setContentTitle(bigMessage);
-					builder.setNumber(changed.size());
-					builder.setStyle(inboxStyle);
-					builder.setTicker(bigMessage);
-				}
-				
-				standIns.removeAll(Util.intersection(changed, standIns));
-				standIns.addAll(Util.intersection(changed, newStandIns));
-				
-				nManager.notify(id, builder.build());
-			} else {
-				Log.d(TAG, "No new standins");
-			}
-			
-			// saving preferences
-			if (changed.size() > 0 || removedSome) {
-				HashSet<String> set = new HashSet<String>();
-				for (StandIn s : standIns)
-					set.add(s.serialize());
-				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
-				System.out.println(set);
-			}
+			//
+			//
+			// boolean removedSome = false;
+			// for (Iterator<StandIn> iter = changed.iterator(); iter.hasNext();) {
+			// StandIn s = iter.next();
+			// boolean relevant = false;
+			// for (Course c : courses) {
+			// if (s.isRelevantForCourse(c)) {
+			// relevant = true;
+			// break;
+			// }
+			// }
+			//
+			// if (!relevant) {
+			// iter.remove();
+			// standIns.remove(s);
+			// removedSome = true;
+			// }
+			// }
+			//
+			// if (changed.size() != 0) {
+			// InboxStyle inboxStyle = new InboxStyle();
+			// String bigMessage = changed.size() + " neue Änderungen.";
+			// inboxStyle.setBigContentTitle(bigMessage);
+			//
+			// for (StandIn r : changed)
+			// inboxStyle.addLine(Util.getMessage(courses, r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */, true));
+			//
+			// String message = Util.getMessage(courses, changed.iterator().next(), true, true);
+			//
+			// builder.setContentTitle(message);
+			// builder.setContentText(getString(R.string.app_name));
+			// builder.setSmallIcon(R.drawable.ic_mbg_logo);
+			// // builder.setDefaults(Notification.DEFAULT_ALL);
+			// builder.setAutoCancel(true);
+			// builder.setTicker(message);
+			//
+			// Intent intent = new Intent(NotificationService.this, MBGStandIns.class);
+			//
+			// TaskStackBuilder stackBuilder = TaskStackBuilder.create(NotificationService.this);
+			// stackBuilder.addParentStack(MBGStandIns.class);
+			// stackBuilder.addNextIntent(intent);
+			// PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+			// builder.setContentIntent(pendingIntent);
+			//
+			// if (changed.size() > 1) {
+			// builder.setContentTitle(bigMessage);
+			// builder.setNumber(changed.size());
+			// builder.setStyle(inboxStyle);
+			// builder.setTicker(bigMessage);
+			// }
+			//
+			// standIns.removeAll(Util.intersection(changed, standIns));
+			// standIns.addAll(Util.intersection(changed, newStandIns));
+			//
+			// nManager.notify(id, builder.build());
+			// } else {
+			// Log.d(TAG, "No new standins");
+			// }
+			//
+			// // saving preferences
+			// if (changed.size() > 0 || removedSome)
+			// PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
 		}
 		
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 			if (key.equals(getString(R.string.courses_id))) {
-				updateCourses();
+				// updateCourses();
 				
 				requestUpdate();
 			}
 		}
 		
-		public void updateCourses() {
-			String coursePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.courses_id), null);
-			if (coursePref == null) {
-				Log.d(TAG, "courses = null");
-			} else {
-				coursePref = coursePref.trim().replace(" ", "");
-				
-				HashSet<Course> courses = new HashSet<Course>();
-				for (String part : coursePref.split(","))
-					courses.add(new Course(part));
-				if (!this.courses.equals(courses)) {
-					this.courses.clear();
-					this.courses.addAll(courses);
-					Log.d(TAG, "courses changed");
-				} else {
-					Log.d(TAG, "courses stay the same");
-				}
-			}
-		}
+		// public void updateCourses() {
+		// String coursePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.courses_id), null);
+		// if (coursePref == null) {
+		// Log.d(TAG, "courses = null");
+		// } else {
+		// coursePref = coursePref.trim().replace(" ", "");
+		//
+		// HashSet<Course> courses = new HashSet<Course>();
+		// for (String part : coursePref.split(","))
+		// courses.add(new Course(part));
+		// if (!this.courses.equals(courses)) {
+		// this.courses.clear();
+		// this.courses.addAll(courses);
+		// Log.d(TAG, "courses changed");
+		// } else {
+		// Log.d(TAG, "courses stayed the same");
+		// }
+		// }
+		// }
 	}
 	
 	@Override
