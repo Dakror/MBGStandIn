@@ -1,4 +1,5 @@
 <?php
+error_reporting(-1);
 /**
  * @author Maximilian Stark | Dakror
  */
@@ -28,8 +29,6 @@ $debug = array_key_exists("debug", $_POST);
 if(!$pwd || !$courses) _die(400);
 
 define("__DEBUG__", $debug);
-
-error_reporting(-1);
 
 set_time_limit(1337);
 
