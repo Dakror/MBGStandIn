@@ -8,6 +8,20 @@ class StandInParser {
 	
 	const INTERVAL = 300; // 5 minutes
 	
+	public function checkPassword($pwd) {
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, "http://mbg-germering.de/mbg/heute.pdf");
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($ch, CURLOPT_POST, 1);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, "pwd=$pwd");
+		curl_exec($ch);
+		$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		
+		curl_close($ch);
+		
+		return $code == 200;
+	}
+	
 	public function fetchFile($today, $pwd) {
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, "http://mbg-germering.de/mbg/".($today? "heute":"morgen").".pdf");
@@ -15,6 +29,7 @@ class StandInParser {
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, "pwd=$pwd");
 		$data = curl_exec($ch);
+
 		curl_close($ch);
 		
 		return $data;
