@@ -3,6 +3,7 @@ package de.dakror.mbg;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -36,19 +37,16 @@ public class NotificationService extends Service {
 		public static final int MAX_COOLDOWN = 5000; // 5 minute interval
 		
 		Set<StandIn> standIns;
-		Set<String> courses;
 		
 		int cooldown = 0;
 		
 		private Notifier() {
 			standIns = new HashSet<StandIn>();
-			courses = new HashSet<String>();
 			PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
 		}
 		
 		@Override
 		public void run() {
-			// updateCourses();
 			// Set<StandIn> old = Util.loadStandIns(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getStringSet(getString(R.string.standins_is), null));
 			// if (old != null) standIns = old;
 			
@@ -72,7 +70,7 @@ public class NotificationService extends Service {
 		}
 		
 		public JSONObject fetchData() throws Exception {
-			URL url = new URL("http://dakror.de/MBGStandIns/");
+			URL url = new URL("http://dakror.de/MBGStandIns/index.php");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("POST");
 			conn.setDoOutput(true);
@@ -86,16 +84,24 @@ public class NotificationService extends Service {
 			byte[] md5 = md.digest(pwd.getBytes());
 			BigInteger bi = new BigInteger(md5);
 			
-			String c = "";
-			for (String s : courses)
-				c += s + ",";
-			c = c.substring(0, Math.max(0, c.length() - 2));
+			String body = "courses=" + getCourses() + "&pwd=" + bi.toString(16);
 			
-			conn.getOutputStream().write(("courses=" + c + "&pwd=").getBytes());
-			conn.getOutputStream().write(bi.toString(16).getBytes());
+			System.out.println(body);
+			
+			conn.setRequestProperty("Content-Length", String.valueOf(body.length()));
+			
+			OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
+			writer.write(body);
+			writer.flush();
+			
+			System.out.println(conn.getResponseCode());
+			
+			if (conn.getResponseCode() != 200) return null;
 			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			copyInputStream(conn.getInputStream(), baos);
+			
+			writer.close();
 			
 			return new JSONObject(new String(baos.toByteArray()));
 		}
@@ -185,32 +191,12 @@ public class NotificationService extends Service {
 		
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-			if (key.equals(getString(R.string.courses_id))) {
-				// updateCourses();
-				
-				requestUpdate();
-			}
+			if (key.equals(getString(R.string.courses_id))) requestUpdate();
 		}
 		
-		// public void updateCourses() {
-		// String coursePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.courses_id), null);
-		// if (coursePref == null) {
-		// Log.d(TAG, "courses = null");
-		// } else {
-		// coursePref = coursePref.trim().replace(" ", "");
-		//
-		// HashSet<Course> courses = new HashSet<Course>();
-		// for (String part : coursePref.split(","))
-		// courses.add(new Course(part));
-		// if (!this.courses.equals(courses)) {
-		// this.courses.clear();
-		// this.courses.addAll(courses);
-		// Log.d(TAG, "courses changed");
-		// } else {
-		// Log.d(TAG, "courses stayed the same");
-		// }
-		// }
-		// }
+		public String getCourses() { // TODO: add validity check
+			return PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.courses_id), "").replace(" ", "");
+		}
 	}
 	
 	@Override

@@ -48,7 +48,10 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		makeTable();
 		PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
 		
-		if (PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.password_id), null) != null) {
+		String pwd = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.password_id), null);
+		String courses = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.courses_id), null);
+		
+		if (pwd == null || courses == null) {
 			Intent intent = new Intent(this, SettingsActivity.class);
 			startActivity(intent);
 		}
