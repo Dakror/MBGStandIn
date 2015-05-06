@@ -1,5 +1,7 @@
 package de.dakror.mbg;
 
+import java.math.BigInteger;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -8,7 +10,7 @@ import org.json.JSONObject;
 /**
  * @author Maximilian Stark | Dakror
  */
-public class StandIn {
+public class StandIn implements Comparable<StandIn> {
 	String[] courses;
 	int[] lessons;
 	boolean free;
@@ -29,7 +31,12 @@ public class StandIn {
 	
 	@Override
 	public int hashCode() {
-		return Integer.parseInt(checksum, 16);
+		return new BigInteger(checksum, 16).intValue();
+	}
+	
+	@Override
+	public int compareTo(StandIn another) {
+		return lessons[0] - another.lessons[0];
 	}
 	
 	public static StandIn create(JSONObject o) throws JSONException {

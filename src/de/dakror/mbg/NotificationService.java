@@ -8,11 +8,16 @@ import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.NotificationManager;
@@ -46,7 +51,7 @@ public class NotificationService extends Service {
 		public static final int MAX_COOLDOWN = 5000; // 5 minute interval
 		
 		Set<StandIn> standIns;
-		
+		JSONObject data;
 		int cooldown = 0;
 		
 		private Notifier() {
@@ -56,8 +61,15 @@ public class NotificationService extends Service {
 		
 		@Override
 		public void run() {
-			// Set<StandIn> old = Util.loadStandIns(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getStringSet(getString(R.string.standins_is), null));
-			// if (old != null) standIns = old;
+			String dataPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.standins_is), null);
+			if (dataPref != null) {
+				try {
+					data = new JSONObject(dataPref);
+					standIns = loadStandIns(data.getJSONArray("courses"));
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+			}
 			
 			while (true) {
 				if (cooldown == 0) {
@@ -86,7 +98,6 @@ public class NotificationService extends Service {
 			conn.setDoInput(true);
 			
 			String pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null);
-			
 			if (pwd == null) return null;
 			
 			MessageDigest md = MessageDigest.getInstance("MD5");
@@ -94,18 +105,16 @@ public class NotificationService extends Service {
 			BigInteger bi = new BigInteger(md5);
 			
 			String body = "courses=" + getCourses() + "&pwd=" + bi.toString(16);
-			
-			System.out.println(body);
-			
 			conn.setRequestProperty("Content-Length", String.valueOf(body.length()));
 			
 			OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
 			writer.write(body);
 			writer.flush();
 			
-			System.out.println(conn.getResponseCode());
-			
-			if (conn.getResponseCode() != 200) return null;
+			if (conn.getResponseCode() != 200) {
+				System.out.println("Http-Response: " + conn.getResponseCode());
+				return null;
+			}
 			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			copyInputStream(conn.getInputStream(), baos);
@@ -115,6 +124,14 @@ public class NotificationService extends Service {
 			return new JSONObject(new String(baos.toByteArray()));
 		}
 		
+		public Set<StandIn> loadStandIns(JSONArray arr) throws JSONException {
+			Set<StandIn> set = new HashSet<StandIn>();
+			for (int i = 0; i < arr.length(); i++)
+				set.add(StandIn.create(arr.getJSONObject(i)));
+			
+			return set;
+		}
+		
 		public void execute() {
 			Builder builder = new Builder(NotificationService.this);
 			NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -122,15 +139,16 @@ public class NotificationService extends Service {
 			int id = 1;
 			
 			try {
-				JSONObject data = fetchData();
+				data = fetchData();
 				if (data == null) return;
 				JSONArray standins = data.getJSONArray("standins");
 				
-				Set<StandIn> newStandIns = new HashSet<StandIn>();
-				for (int i = 0; i < standins.length(); i++)
-					newStandIns.add(StandIn.create(standins.getJSONObject(i)));
+				Set<StandIn> newStandIns = loadStandIns(standins);
 				
-				Set<StandIn> changed = new TreeSet<StandIn>(Util.symDifference(standIns, newStandIns));
+				Collection<StandIn> changed = new ArrayList<StandIn>(Util.symDifference(standIns, newStandIns));
+				Collections.sort((List<StandIn>) changed);
+				
+				Set<String> courses = new HashSet<String>(Arrays.asList(getCourses().split(",")));
 				
 				if (changed.size() != 0) {
 					InboxStyle inboxStyle = new InboxStyle();
@@ -172,10 +190,14 @@ public class NotificationService extends Service {
 					Log.d(TAG, "No new standins");
 				}
 				
-				// saving preferences
-				if (changed.size() > 0) {
-					PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
-				}
+				// saving
+				JSONArray arr = new JSONArray();
+				for (StandIn s : standIns)
+					arr.put(s.cache);
+				
+				data.put("courses", arr);
+				
+				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putString(getString(R.string.standins_is), data.toString()).apply();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -183,7 +205,7 @@ public class NotificationService extends Service {
 		
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-			if (key.equals(getString(R.string.courses_id))) requestUpdate();
+			if (key.equals(getString(R.string.courses_id)) || key.equals(getString(R.string.password_id))) requestUpdate();
 		}
 		
 		public String getCourses() {
