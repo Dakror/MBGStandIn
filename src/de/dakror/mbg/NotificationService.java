@@ -10,11 +10,13 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -25,6 +27,9 @@ import android.net.NetworkInfo;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat.Builder;
+import android.support.v4.app.NotificationCompat.InboxStyle;
+import android.support.v4.app.TaskStackBuilder;
+import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -118,78 +123,62 @@ public class NotificationService extends Service {
 			
 			try {
 				JSONObject data = fetchData();
-				
 				if (data == null) return;
-				
 				JSONArray standins = data.getJSONArray("standins");
 				
-				System.out.println(data);
+				Set<StandIn> newStandIns = new HashSet<StandIn>();
+				for (int i = 0; i < standins.length(); i++)
+					newStandIns.add(StandIn.create(standins.getJSONObject(i)));
+				
+				Set<StandIn> changed = new TreeSet<StandIn>(Util.symDifference(standIns, newStandIns));
+				
+				if (changed.size() != 0) {
+					InboxStyle inboxStyle = new InboxStyle();
+					String bigMessage = changed.size() + " neue Änderungen.";
+					inboxStyle.setBigContentTitle(bigMessage);
+					
+					for (StandIn r : changed)
+						inboxStyle.addLine(Util.getMessage(courses, r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */, true));
+					
+					String message = Util.getMessage(courses, changed.iterator().next(), true, true);
+					
+					builder.setContentTitle(message);
+					builder.setContentText(getString(R.string.app_name));
+					builder.setSmallIcon(R.drawable.ic_mbg_logo);
+					// builder.setDefaults(Notification.DEFAULT_ALL);
+					builder.setAutoCancel(true);
+					builder.setTicker(message);
+					
+					Intent intent = new Intent(NotificationService.this, MBGStandIns.class);
+					
+					TaskStackBuilder stackBuilder = TaskStackBuilder.create(NotificationService.this);
+					stackBuilder.addParentStack(MBGStandIns.class);
+					stackBuilder.addNextIntent(intent);
+					PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+					builder.setContentIntent(pendingIntent);
+					
+					if (changed.size() > 1) {
+						builder.setContentTitle(bigMessage);
+						builder.setNumber(changed.size());
+						builder.setStyle(inboxStyle);
+						builder.setTicker(bigMessage);
+					}
+					
+					standIns.removeAll(Util.intersection(changed, standIns));
+					standIns.addAll(Util.intersection(changed, newStandIns));
+					
+					nManager.notify(id, builder.build());
+				} else {
+					Log.d(TAG, "No new standins");
+				}
+				
+				// saving preferences
+				if (changed.size() > 0) {
+					PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			//
-			//
-			// boolean removedSome = false;
-			// for (Iterator<StandIn> iter = changed.iterator(); iter.hasNext();) {
-			// StandIn s = iter.next();
-			// boolean relevant = false;
-			// for (Course c : courses) {
-			// if (s.isRelevantForCourse(c)) {
-			// relevant = true;
-			// break;
-			// }
-			// }
-			//
-			// if (!relevant) {
-			// iter.remove();
-			// standIns.remove(s);
-			// removedSome = true;
-			// }
-			// }
-			//
-			// if (changed.size() != 0) {
-			// InboxStyle inboxStyle = new InboxStyle();
-			// String bigMessage = changed.size() + " neue Änderungen.";
-			// inboxStyle.setBigContentTitle(bigMessage);
-			//
-			// for (StandIn r : changed)
-			// inboxStyle.addLine(Util.getMessage(courses, r, newStandIns.contains(r) /* if the new ones contains it but the old ones don't, it's an addition */, true));
-			//
-			// String message = Util.getMessage(courses, changed.iterator().next(), true, true);
-			//
-			// builder.setContentTitle(message);
-			// builder.setContentText(getString(R.string.app_name));
-			// builder.setSmallIcon(R.drawable.ic_mbg_logo);
-			// // builder.setDefaults(Notification.DEFAULT_ALL);
-			// builder.setAutoCancel(true);
-			// builder.setTicker(message);
-			//
-			// Intent intent = new Intent(NotificationService.this, MBGStandIns.class);
-			//
-			// TaskStackBuilder stackBuilder = TaskStackBuilder.create(NotificationService.this);
-			// stackBuilder.addParentStack(MBGStandIns.class);
-			// stackBuilder.addNextIntent(intent);
-			// PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-			// builder.setContentIntent(pendingIntent);
-			//
-			// if (changed.size() > 1) {
-			// builder.setContentTitle(bigMessage);
-			// builder.setNumber(changed.size());
-			// builder.setStyle(inboxStyle);
-			// builder.setTicker(bigMessage);
-			// }
-			//
-			// standIns.removeAll(Util.intersection(changed, standIns));
-			// standIns.addAll(Util.intersection(changed, newStandIns));
-			//
-			// nManager.notify(id, builder.build());
-			// } else {
-			// Log.d(TAG, "No new standins");
-			// }
-			//
-			// // saving preferences
-			// if (changed.size() > 0 || removedSome)
-			// PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putStringSet(getString(R.string.standins_is), set).apply();
 		}
 		
 		@Override
@@ -197,7 +186,7 @@ public class NotificationService extends Service {
 			if (key.equals(getString(R.string.courses_id))) requestUpdate();
 		}
 		
-		public String getCourses() { // TODO: add validity check
+		public String getCourses() {
 			return PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.courses_id), "").replace(" ", "");
 		}
 	}

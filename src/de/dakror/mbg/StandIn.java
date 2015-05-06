@@ -17,7 +17,20 @@ public class StandIn {
 	String room;
 	String text;
 	
+	String checksum;
+	
 	JSONObject cache;
+	
+	@Override
+	public boolean equals(Object o) {
+		if (o instanceof StandIn) return ((StandIn) o).checksum.equals(checksum);
+		return false;
+	}
+	
+	@Override
+	public int hashCode() {
+		return Integer.parseInt(checksum, 16);
+	}
 	
 	public static StandIn create(JSONObject o) throws JSONException {
 		StandIn s = new StandIn();
@@ -39,6 +52,7 @@ public class StandIn {
 		s.subject = o.optString("subject");
 		s.room = o.optString("room");
 		s.text = o.optString("text");
+		s.checksum = o.optString("checksum");
 		
 		return s;
 	}
