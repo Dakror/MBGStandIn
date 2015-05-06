@@ -11,9 +11,8 @@ class StandIn implements iJson {
 	public $replacer;
 	public $subject;
 	public $room;
-	
 	public $text;
-	
+
 	protected $expects_more_courses = false;
 	
 	public function addCourse($string) {
@@ -37,8 +36,10 @@ class StandIn implements iJson {
 			"replacer" => $this->replacer,
 			"subject" => $this->subject,
 			"room" => $this->room,
-			"text" => $this->text,
+			"text" => $this->text
 		);
+		
+		$out["checksum"] = md5(serialize($out));
 		
 		return array_filter($out);
 	}	
