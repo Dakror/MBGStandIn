@@ -42,6 +42,4 @@ public class StandIn {
 		
 		return s;
 	}
-	
-	
 }

@@ -16,12 +16,16 @@ import org.json.JSONObject;
 
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat.Builder;
+import android.widget.Toast;
 
 /**
  * @author Maximilian Stark | Dakror
@@ -120,7 +124,6 @@ public class NotificationService extends Service {
 				JSONArray standins = data.getJSONArray("standins");
 				
 				System.out.println(data);
-				
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -201,7 +204,13 @@ public class NotificationService extends Service {
 	
 	@Override
 	public void onCreate() {
-		new Notifier().start();
+		ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+		if (networkInfo != null && networkInfo.isConnected()) {
+			new Notifier().start();
+		} else {
+			Toast.makeText(getApplicationContext(), "Nicht mit dem Internet verbunden. Vertretungsplan konnte nicht abgerufen werden.", Toast.LENGTH_LONG).show();
+		}
 	}
 	
 	@Override
