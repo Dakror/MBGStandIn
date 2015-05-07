@@ -73,7 +73,7 @@ class StandInParser {
 		
 		if($lazy || time() - filemtime($filename) > self::INTERVAL) {
 			file_put_contents($filename, "<?php\nconst ".($table->today ? "__TODAY__" : "__TOMORROW__")." = '".serialize($table)."';\n?>", LOCK_EX);
-		} elseif(__DEBUG__) echo "$filename up to date<br>";
+		} elseif(__DEBUG__) array_add($DEBUG_TABLE, "$filename up to date");
 	}
 	
 	public function load() {
@@ -105,7 +105,7 @@ class StandInParser {
 			$table = $this->parseAllPages($this->fetchFile($today, $password), $password);
 			$table->today = $today;
 			$this->store($table, true);
-		} elseif(__DEBUG__) echo "$filename up to date<br>";
+		} elseif(__DEBUG__) array_add($DEBUG_TABLE, "$filename up to date");
 	}
 	
 	public function update($password) {
@@ -142,16 +142,16 @@ class StandInParser {
 					if($standin) {
 						if($standin->isExpectingMoreCourses()) {
 							$standin->addCourse($p[0]);
-							if(__DEBUG__) echo "<font color=green>$tok</font><br>";
+							if(__DEBUG__) array_add($DEBUG_TABLE, "*$tok*");
 						} else {
 							$standin->text.=" $tok";
-							if(__DEBUG__) echo "<font color=blue>$tok</font><br>";
+							if(__DEBUG__) array_add($DEBUG_TABLE, "#$tok#");
 						}
 						// TODO: Handle it if there is a course overflow as well as a text overflow!
 						// TODO: Also count($p) < 5 is tricky with the text field
 					}
 				} else {				
-					if(__DEBUG__) echo ">> $tok<br>";
+					if(__DEBUG__) array_add($DEBUG_TABLE, ">> $tok");
 					$standin = new StandIn();
 
 					$i = 0;

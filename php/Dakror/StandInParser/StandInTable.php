@@ -1,4 +1,5 @@
 <?php
+<?php
 require_once "StandIn.php";
 /**
  * @author Maximilian Stark | Dakror
@@ -13,7 +14,7 @@ class StandInTable {
 	
 	protected $standins = array();
 	
-		public function addStandIn($standin) {
+	public function addStandIn($standin) {
 		array_push($this->standins, $standin);
 	}
 	

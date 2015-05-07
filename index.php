@@ -30,6 +30,8 @@ if(!$pwd || !$courses) _die(400);
 
 define("__DEBUG__", $debug);
 
+$DEBUG_TABLE = array();
+
 set_time_limit(1337);
 
 $parser = new StandInParser();
@@ -49,6 +51,8 @@ $standins = $table->getRelevantStandIns($courses);
 
 $arr = array("date" => implode(".", $table->date), "standins" => apply_iJson($standins));
 if($table->info) $arr["info"] = $table->info;
+
+if($DEBUG_TABLE) $arr["debug"] = $DEBUG_TABLE;
 
 die(json_encode($arr));
 ?>
