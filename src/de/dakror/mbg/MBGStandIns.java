@@ -108,7 +108,7 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		String standins = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.standins_is), null);
 		if (standins != null) {
 			data = new JSONObject(standins);
-			set.addAll(Util.loadStandIns(data.getJSONArray("courses")));
+			if (doWarnings()) set.addAll(Util.loadStandIns(data.getJSONArray("courses")));
 		}
 		
 		final ArrayList<StandIn> list = new ArrayList<StandIn>(set);
@@ -175,6 +175,18 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 	
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+		if (key.equals(getString(R.string.standins_is))) {
+			try {
+				makeTable();
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		} else {
+			doWarnings();
+		}
+	}
+	
+	public boolean doWarnings() {
 		boolean pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null) != null;
 		boolean crs = Util.getCourses(this).length() > 0;
 		
@@ -186,12 +198,6 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 			Toast.makeText(getApplicationContext(), "Bitte geben Sie ihre Klassen / Kurse an.", Toast.LENGTH_SHORT).show();
 		}
 		
-		if (key.equals(getString(R.string.standins_is))) {
-			try {
-				makeTable();
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
+		return pwd && crs;
 	}
 }

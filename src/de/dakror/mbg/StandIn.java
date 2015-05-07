@@ -41,7 +41,13 @@ public class StandIn implements Comparable<StandIn> {
 	
 	@Override
 	public int compareTo(StandIn another) {
-		return lessons[0] - another.lessons[0];
+		int dLessons = lessons[0] - another.lessons[0];
+		if (dLessons == 0) {
+			int dCourses = courses[0].compareTo(another.courses[0]);
+			if (dCourses == 0) return subject.compareTo(another.subject);
+			return dCourses;
+		}
+		return dLessons;
 	}
 	
 	@Override

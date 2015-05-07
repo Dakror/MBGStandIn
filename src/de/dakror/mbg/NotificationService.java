@@ -141,8 +141,6 @@ public class NotificationService extends Service {
 					return;
 				}
 				
-				Log.d(TAG, data.toString(4));
-				
 				if (Util.getCourses(NotificationService.this).length() == 0) {
 					Log.d(TAG, "No courses entered");
 					return;
