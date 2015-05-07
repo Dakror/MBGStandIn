@@ -83,7 +83,7 @@ class StandInParser {
 		$tomorrow = unserialize(__TOMORROW__);
 		
 		if($this->isSameDay($now, $today)) {
-			if($now["hours"] > 18 && $this->isFutureDay($date, $tomorrow) /* better safe than sorry. */) return $tomorrow; // after school show the standins for the next day
+			if($now["hours"] > 16 && $this->isFutureDay($date, $tomorrow) /* better safe than sorry. */) return $tomorrow; // after school show the standins for the next day
 			return $today;
 		} else {
 			return $tomorrow;
