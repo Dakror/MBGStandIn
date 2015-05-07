@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="15dp"
         android:paddingTop="15dp"
-        android:textAppearance="?android:attr/textAppearanceListItem" />
+        android:textAppearance="?android:attr/textAppearance" />
 
     <TextView
         android:id="@+id/standins_textview_text"
@@ -20,7 +20,7 @@
         android:paddingBottom="15dp"
         android:paddingLeft="23dp"
         android:paddingRight="15dp"
-        android:textAppearance="?android:attr/textAppearanceListItemSmall"
-        android:textColor="#999" />
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="#444" />
 
 </LinearLayout>

@@ -1,5 +1,14 @@
 package de.dakror.mbg;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,9 +16,16 @@ import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * @author Maximilian Stark | Dakror
@@ -45,7 +61,11 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		setContentView(R.layout.activity_mbgstandins);
 		Intent service = new Intent(this, NotificationService.class);
 		startService(service);
-		makeTable();
+		try {
+			makeTable();
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
 		PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
 		
 		String pwd = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.password_id), null);
@@ -75,74 +95,103 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		}
 	}
 	
-	public void makeTable() {
-		// Set<StandIn> set = Util.loadStandIns(PreferenceManager.getDefaultSharedPreferences(this).getStringSet(getString(R.string.standins_is), null));
-		//
-		// String coursePref = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.courses_id), null);
-		// if (coursePref == null) {
-		// Log.d("MBGStandIns", "courses = null");
-		// } else if (set == null) {
-		// Log.d("MBGStandIns", "set = null");
-		// } else {
-		// coursePref = coursePref.trim().replace(" ", "");
-		//
-		// HashSet<Course> courses = new HashSet<Course>();
-		// for (String part : coursePref.split(","))
-		// courses.add(new Course(part));
-		//
-		// ListView layout = (ListView) findViewById(R.id.standins_list);
-		//
-		// final String[] str = new String[set.size()];
-		// int i = 0;
-		// for (StandIn s : set) {
-		// str[i] = Util.getMessage(courses, s, true, false);
-		// i++;
-		// }
-		//
-		// final ArrayList<StandIn> list = new ArrayList<StandIn>(set);
-		//
-		// layout.setAdapter(new BaseAdapter() {
-		// @Override
-		// public View getView(int position, View convertView, ViewGroup parent) {
-		// LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-		// View view = null;
-		// if (list.get(position).getText().length() == 0) {
-		// view = inflater.inflate(R.layout.standins_textview_alt, null);
-		// TextView header = (TextView) view.findViewById(R.id.standins_textview_header_alt);
-		// header.setText(str[position]);
-		// } else {
-		// view = inflater.inflate(R.layout.standins_textview, null);
-		// TextView header = (TextView) view.findViewById(R.id.standins_textview_header);
-		// header.setText(str[position]);
-		// TextView text = (TextView) view.findViewById(R.id.standins_textview_text);
-		// text.setText(list.get(position).getText());
-		// }
-		// return view;
-		// }
-		//
-		// @Override
-		// public long getItemId(int position) {
-		// return position;
-		// }
-		//
-		// @Override
-		// public Object getItem(int position) {
-		// return str[position];
-		// }
-		//
-		// @Override
-		// public int getCount() {
-		// return str.length;
-		// }
-		// });
-		//
-		// }
+	JSONObject data;
+	
+	public void makeTable() throws JSONException {
+		if (!Util.hasConnection(this)) {
+			Toast.makeText(getApplicationContext(), "Nicht mit dem Internet verbunden. Vertretungsplan konnte nicht aktualisiert werden.", Toast.LENGTH_LONG).show();
+		}
+		
+		Set<StandIn> set = new HashSet<StandIn>();
+		final ListView listView = (ListView) findViewById(R.id.standins_list);
+		
+		String standins = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.standins_is), null);
+		if (standins != null) {
+			data = new JSONObject(standins);
+			set.addAll(Util.loadStandIns(data.getJSONArray("courses")));
+		}
+		
+		final ArrayList<StandIn> list = new ArrayList<StandIn>(set);
+		Collections.sort(list);
+		
+		final String[] str = new String[list.size() + 1];
+		int i = 0;
+		
+		if (standins == null) {
+			str[0] = "Keine Einträge verfügbar.";
+		} else {
+			str[i++] = "Vertretungsplan des " + data.getString("date") + ".";
+			Set<String> courses = new HashSet<String>(Arrays.asList(Util.getCourses(this).split(",")));
+			for (StandIn s : list) {
+				s.added = true;
+				str[i] = Util.getMessage(courses, s, false);
+				i++;
+			}
+		}
+		
+		
+		listView.setAdapter(new BaseAdapter() {
+			@Override
+			public View getView(int position, View convertView, ViewGroup parent) {
+				View view = null;
+				
+				if (position > 0) view = setView(str[position], list.get(position - 1).text.length() == 0 ? null : list.get(position - 1).text);
+				else {
+					String info = data != null ? data.optString("info") : "";
+					view = setView(str[position], info.length() > 0 ? info : "für die Klasse(n) / Kurs(e): " + Util.getCourses(MBGStandIns.this).replace(",", ", "));
+				}
+				
+				return view;
+			}
+			
+			public View setView(String headerText, String subText) {
+				View view = ((LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE)).inflate(subText == null ? R.layout.standins_textview_alt : R.layout.standins_textview, null);
+				TextView header = (TextView) view.findViewById(R.id.standins_textview_header);
+				header.setText(headerText);
+				if (subText != null) {
+					TextView text = (TextView) view.findViewById(R.id.standins_textview_text);
+					text.setText(subText);
+				}
+				
+				return view;
+			}
+			
+			@Override
+			public long getItemId(int position) {
+				return position;
+			}
+			
+			@Override
+			public Object getItem(int position) {
+				return str[position];
+			}
+			
+			@Override
+			public int getCount() {
+				return str.length;
+			}
+		});
 	}
 	
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+		boolean pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null) != null;
+		boolean crs = Util.getCourses(this).length() > 0;
+		
+		if (!pwd && !crs) {
+			Toast.makeText(getApplicationContext(), "Bitte geben Sie das Passwort und ihre Klassen / Kurse an.", Toast.LENGTH_LONG).show();
+		} else if (!pwd) {
+			Toast.makeText(getApplicationContext(), "Bitte geben Sie das Passwort ein.", Toast.LENGTH_SHORT).show();
+		} else if (!crs) {
+			Toast.makeText(getApplicationContext(), "Bitte geben Sie ihre Klassen / Kurse an.", Toast.LENGTH_SHORT).show();
+		}
+		
 		if (key.equals(getString(R.string.standins_is))) {
-			makeTable();
+			try {
+				makeTable();
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

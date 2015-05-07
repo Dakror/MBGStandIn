@@ -23,6 +23,11 @@ public class StandIn implements Comparable<StandIn> {
 	
 	JSONObject cache;
 	
+	/**
+	 * For notification purposes
+	 */
+	boolean added;
+	
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof StandIn) return ((StandIn) o).checksum.equals(checksum);
@@ -37,6 +42,11 @@ public class StandIn implements Comparable<StandIn> {
 	@Override
 	public int compareTo(StandIn another) {
 		return lessons[0] - another.lessons[0];
+	}
+	
+	@Override
+	public String toString() {
+		return cache.toString() + "\r\n";
 	}
 	
 	public static StandIn create(JSONObject o) throws JSONException {

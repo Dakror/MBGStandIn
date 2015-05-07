@@ -6,12 +6,12 @@
     android:orientation="vertical" >
 
     <TextView
-        android:id="@+id/standins_textview_header_alt"
+        android:id="@+id/standins_textview_header"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingLeft="15dp"
         android:paddingTop="15dp"
         android:paddingBottom="15dp"
-        android:textAppearance="?android:attr/textAppearanceListItem" />
+        android:textAppearance="?android:attr/textAppearance" />
 
 </LinearLayout>
