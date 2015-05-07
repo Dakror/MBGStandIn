@@ -1,5 +1,4 @@
 <?php
-<?php
 require_once "StandIn.php";
 /**
  * @author Maximilian Stark | Dakror
