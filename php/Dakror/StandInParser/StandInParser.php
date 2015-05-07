@@ -188,6 +188,7 @@ class StandInParser {
 									$standin->free = true;
 								} else {
 									$standin->replacer = $e;
+									if($standin->replacer == "ade" && isAprilFools()) $standin->replacer = "Christiane";
 								}
 								break;
 							}

@@ -16,6 +16,11 @@ function _die($code) {
 	die($codes[$code]);
 }
 
+function isAprilFools() {
+	$now = getdate();
+	return $now["mday"] == 1 && $now["mon"] == 4;
+}
+
 /**
  *
  * Seperated by ',':
