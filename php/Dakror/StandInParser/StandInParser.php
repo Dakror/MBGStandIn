@@ -96,11 +96,11 @@ class StandInParser {
 	} 
 	
 	public function isSameDay($date, $table) {
-		return $table->date[0] == $date["mon"] && $table->date[1] == $date["mday"];
+		return $table->date[0] == $date["mday"] && $table->date[1] == $date["mon"];
 	}
 	
 	public function isFutureDay($date, $table) {
-		return $table->date[0] > $date["mon"] || ($table->date[0] == $date["mon"] && $table->date[1] > $date["mday"]);
+		return $table->date[1] > $date["mon"] || ($table->date[1] == $date["mon"] && $table->date[0] > $date["mday"]);
 	}
 	
 	public function _update($today, $password) {
