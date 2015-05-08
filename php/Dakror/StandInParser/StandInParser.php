@@ -73,7 +73,7 @@ class StandInParser {
 		
 		if($lazy || time() - filemtime($filename) > self::INTERVAL) {
 			file_put_contents($filename, "<?php\nconst ".($table->today ? "__TODAY__" : "__TOMORROW__")." = '".serialize($table)."';\n?>", LOCK_EX);
-		} elseif(__DEBUG__) array_add($DEBUG_TABLE, "$filename up to date");
+		} elseif(__DEBUG__) d_echo("$filename up to date");
 	}
 	
 	public function load() {
@@ -83,9 +83,14 @@ class StandInParser {
 		$tomorrow = unserialize(__TOMORROW__);
 		
 		if($this->isSameDay($now, $today)) {
-			if($now["hours"] > 16 && $this->isFutureDay($date, $tomorrow) /* better safe than sorry. */) return $tomorrow; // after school show the standins for the next day
+			if($now["hours"] > 16 && $this->isFutureDay($date, $tomorrow) /* better safe than sorry. */) {
+				d_echo("Returning next day");
+				return $tomorrow; // after school show the standins for the next day
+			}
+			d_echo("Returning today");
 			return $today;
 		} else {
+			d_echo("Returning straight up tomorrow");
 			return $tomorrow;
 		}
 	} 
@@ -105,7 +110,7 @@ class StandInParser {
 			$table = $this->parseAllPages($this->fetchFile($today, $password), $password);
 			$table->today = $today;
 			$this->store($table, true);
-		} elseif(__DEBUG__) array_add($DEBUG_TABLE, "$filename up to date");
+		} elseif(__DEBUG__) d_echo("$filename up to date");
 	}
 	
 	public function update($password) {
@@ -142,16 +147,16 @@ class StandInParser {
 					if($standin) {
 						if($standin->isExpectingMoreCourses()) {
 							$standin->addCourse($p[0]);
-							if(__DEBUG__) array_add($DEBUG_TABLE, "*$tok*");
+							if(__DEBUG__) d_echo("*$tok*");
 						} else {
 							$standin->text.=" $tok";
-							if(__DEBUG__) array_add($DEBUG_TABLE, "#$tok#");
+							if(__DEBUG__) d_echo("#$tok#");
 						}
 						// TODO: Handle it if there is a course overflow as well as a text overflow!
 						// TODO: Also count($p) < 5 is tricky with the text field
 					}
 				} else {				
-					if(__DEBUG__) array_add($DEBUG_TABLE, ">> $tok");
+					if(__DEBUG__) d_echo(">> $tok");
 					$standin = new StandIn();
 
 					$i = 0;
