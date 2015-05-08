@@ -40,7 +40,7 @@ class Course implements iJson {
 	}
 	
 	public function __toString() {
-		return $this->desc;
+		return strtoupper($this->desc);
 	}
 	
 	public static function isCourse($string) {

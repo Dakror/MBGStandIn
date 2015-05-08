@@ -110,6 +110,7 @@ class StandInParser {
 			$table = $this->parseAllPages($this->fetchFile($today, $password), $password);
 			$table->today = $today;
 			$this->store($table, true);
+      d_echo("updated $filename");
 		} elseif(__DEBUG__) d_echo("$filename up to date");
 	}
 	
