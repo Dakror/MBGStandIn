@@ -112,7 +112,7 @@ public class NotificationService extends Service {
 			
 			OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
 			writer.write(body);
-			writer.flush();
+			writer.close();
 			
 			if (conn.getResponseCode() != 200) {
 				Log.d(TAG, "Http-Response: " + conn.getResponseCode());
@@ -121,8 +121,6 @@ public class NotificationService extends Service {
 			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			copyInputStream(conn.getInputStream(), baos);
-			
-			writer.close();
 			
 			return new JSONObject(new String(baos.toByteArray()));
 		}
@@ -140,6 +138,8 @@ public class NotificationService extends Service {
 					Log.d(TAG, "No data fetched");
 					return;
 				}
+				
+				Log.d(TAG, data.optJSONArray("debug") + "");
 				
 				if (Util.getCourses(NotificationService.this).length() == 0) {
 					Log.d(TAG, "No courses entered");
@@ -161,8 +161,6 @@ public class NotificationService extends Service {
 				
 				int i = 0;
 				List<StandIn> changed = new ArrayList<StandIn>(Util.symDifference(newStandIns, standIns));
-				
-				Log.d(TAG, changed.toString());
 				
 				for (Iterator<StandIn> iter = changed.iterator(); iter.hasNext();) {
 					StandIn si = iter.next();
@@ -258,8 +256,11 @@ public class NotificationService extends Service {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 			Log.d(TAG, "onSharedPreferenceChanged: " + key);
-			if (key.equals(getString(R.string.courses_id)) || key.equals(getString(R.string.password_id))) {
+			if (key.equals(getString(R.string.courses_id)) || key.equals(getString(R.string.password_id))
+					|| (key.equals(getString(R.string.refresh_id)) && sharedPreferences.getBoolean(key, false))) {
 				requestUpdate();
+				
+				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putBoolean(getString(R.string.refresh_id), false).apply();
 			}
 		}
 	}

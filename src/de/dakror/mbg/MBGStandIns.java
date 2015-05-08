@@ -13,9 +13,12 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -30,7 +33,7 @@ import android.widget.Toast;
 /**
  * @author Maximilian Stark | Dakror
  */
-public class MBGStandIns extends Activity implements OnSharedPreferenceChangeListener {
+public class MBGStandIns extends Activity implements OnSharedPreferenceChangeListener, OnRefreshListener {
 	/**
 	 * @author Maximilian Stark | Dakror
 	 */
@@ -54,6 +57,8 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		}
 	}
 	
+	SwipeRefreshLayout refreshLayout;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -61,6 +66,12 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		setContentView(R.layout.activity_mbgstandins);
 		Intent service = new Intent(this, NotificationService.class);
 		startService(service);
+		
+		refreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefresh);
+		refreshLayout.setColorSchemeColors(Color.parseColor("#FF6F00"), Color.parseColor("#ffb300"), Color.parseColor("#FFD54F"), Color.parseColor("#FFF8E1"));
+		// using http://www.google.com/design/spec/style/color.html#color-color-palette
+		refreshLayout.setOnRefreshListener(this);
+		
 		try {
 			makeTable();
 		} catch (JSONException e) {
@@ -129,7 +140,6 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 			}
 		}
 		
-		
 		listView.setAdapter(new BaseAdapter() {
 			@Override
 			public View getView(int position, View convertView, ViewGroup parent) {
@@ -140,6 +150,8 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 					String info = data != null ? data.optString("info") : "";
 					view = setView(str[position], info.length() > 0 ? info : "für die Klasse(n) / Kurs(e): " + Util.getCourses(MBGStandIns.this).replace(",", ", "));
 				}
+				
+				view.setOnClickListener(null);
 				
 				return view;
 			}
@@ -175,6 +187,10 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 	
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+		if (key.equals(getString(R.string.refresh_id))) {
+			refreshLayout.setRefreshing(sharedPreferences.getBoolean(key, false));
+		}
+		
 		if (key.equals(getString(R.string.standins_is))) {
 			try {
 				makeTable();
@@ -199,5 +215,10 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		}
 		
 		return pwd && crs;
+	}
+	
+	@Override
+	public void onRefresh() {
+		PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putBoolean(getString(R.string.refresh_id), true).apply();
 	}
 }
