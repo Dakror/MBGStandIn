@@ -39,7 +39,7 @@ $DEBUG_TABLE = array();
 
 function d_echo($msg) {
 	global $DEBUG_TABLE;
-	array_add($DEBUG_TABLE, $msg);
+	array_push($DEBUG_TABLE, $msg);
 }
 
 set_time_limit(1337);
