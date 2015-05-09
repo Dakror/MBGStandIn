@@ -1,4 +1,6 @@
 <?php
+$start = microtime(true);
+
 error_reporting(-1);
 /**
  * @author Maximilian Stark | Dakror
@@ -19,6 +21,25 @@ function _die($code) {
 function isAprilFools() {
 	$now = getdate();
 	return $now["mday"] == 1 && $now["mon"] == 4;
+}
+
+function getAndroidVersion() {
+	if ($c = preg_match_all("/.*?(Android).*?([+-]?\\d*\\.\\d+)(?![-+0-9\\.])/is", $_SERVER["HTTP_USER_AGENT"], $matches)) {
+      $word1=$matches[1][0];
+      $float1=$matches[2][0];
+      if($word1 == "Android") return $float1;
+  }
+	
+	return -1;
+}
+
+function _log($string) {
+	file_put_contents("log/log.ini", $string, FILE_APPEND);
+}
+
+function logTime() {
+	global $start;
+	_log("duration[] = ".((microtime(true) - $start) * 1000)."\r\n");
 }
 
 /**
@@ -42,12 +63,17 @@ function d_echo($msg) {
 	array_push($DEBUG_TABLE, $msg);
 }
 
-set_time_limit(1337);
-
 $parser = new StandInParser();
 
-if(!$parser->checkPassword($pwd)) _die(401);
+$pwdRight = $parser->checkPassword($pwd); 
 
+_log("version[] = ".getAndroidVersion()."\r\ntimestamp[] = ".(microtime(true) * 1000)."\r\ncourses[] = $courses\r\npassword[] = ".($pwdRight?"true":"false")."\r\n");
+
+if(!$pwdRight) {
+	logTime();
+	_die(401);
+}
+		
 $parser->update($pwd);
 
 @include "pages/today.php";
@@ -64,5 +90,6 @@ if($table->info) $arr["info"] = $table->info;
 
 if($debug) $arr["debug"] = $DEBUG_TABLE;
 
-die(json_encode($arr));
+echo json_encode($arr);
+logTime();
 ?>
