@@ -1,5 +1,7 @@
 package de.dakror.mbg;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,6 +18,17 @@ import android.preference.PreferenceManager;
  * @author Maximilian Stark | Dakror
  */
 public class Util {
+	public static void copyInputStream(InputStream is, OutputStream out) throws Exception {
+		byte[] buffer = new byte[2048];
+		int len = is.read(buffer);
+		while (len != -1) {
+			out.write(buffer, 0, len);
+			len = is.read(buffer);
+		}
+		is.close();
+		out.close();
+	}
+	
 	public static <T> Set<T> union(Set<T> SetA, Set<T> SetB) {
 		Set<T> tmp = new HashSet<T>(SetA);
 		tmp.addAll(SetB);

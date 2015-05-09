@@ -1,12 +1,11 @@
 package de.dakror.mbg;
 
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,12 +51,12 @@ public class NotificationService extends Service {
 		
 		private Notifier() {
 			standIns = new HashSet<StandIn>();
-			PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
+			PreferenceManager.getDefaultSharedPreferences(NotificationService.this).registerOnSharedPreferenceChangeListener(this);
 		}
 		
 		@Override
 		public void run() {
-			String dataPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.standins_is), null);
+			String dataPref = PreferenceManager.getDefaultSharedPreferences(NotificationService.this).getString(getString(R.string.standins_is), null);
 			if (dataPref != null) {
 				try {
 					data = new JSONObject(dataPref);
@@ -100,8 +99,8 @@ public class NotificationService extends Service {
 			conn.setDoOutput(true);
 			conn.setDoInput(true);
 			
-			String pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null);
-			if (pwd == null) return null;
+			String pwd = PreferenceManager.getDefaultSharedPreferences(NotificationService.this).getString(getString(R.string.password_id), "");
+			if (pwd.length() == 0) return null;
 			
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			byte[] md5 = md.digest(pwd.getBytes());
@@ -116,11 +115,11 @@ public class NotificationService extends Service {
 			
 			if (conn.getResponseCode() != 200) {
 				Log.d(TAG, "Http-Response: " + conn.getResponseCode());
-				return null;
+				return new JSONObject("{\"error\":" + conn.getResponseCode() + "}");
 			}
 			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			copyInputStream(conn.getInputStream(), baos);
+			Util.copyInputStream(conn.getInputStream(), baos);
 			
 			return new JSONObject(new String(baos.toByteArray()));
 		}
@@ -129,13 +128,18 @@ public class NotificationService extends Service {
 			try {
 				//@off
 				if (!Util.hasConnection(NotificationService.this)) { Log.d(TAG, "No internet connection"); return; }
-				if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null) == null) { Log.d(TAG, "No password"); return; }
+				if (PreferenceManager.getDefaultSharedPreferences(NotificationService.this).getString(getString(R.string.password_id), "").length() == 0) { Log.d(TAG, "No password"); return; }
 				if (Util.getCourses(NotificationService.this).length() == 0) { Log.d(TAG, "No courses"); return; }			
 				//@on
 				
 				JSONObject data = fetchData();
 				if (data == null) {
 					Log.d(TAG, "No data fetched");
+					return;
+				}
+				
+				if (data.has("error")) {
+					PreferenceManager.getDefaultSharedPreferences(NotificationService.this).edit().putInt(getString(R.string.error_id), data.getInt("error")).apply();
 					return;
 				}
 				
@@ -196,7 +200,9 @@ public class NotificationService extends Service {
 				data.put("courses", arr);
 				
 				this.data = data;
-				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putString(getString(R.string.standins_is), data.toString()).apply();
+				PreferenceManager.getDefaultSharedPreferences(NotificationService.this).edit().putString(getString(R.string.standins_is), data.toString()).apply();
+			} catch (UnknownHostException e) {
+				PreferenceManager.getDefaultSharedPreferences(NotificationService.this).edit().putInt(getString(R.string.error_id), 199).apply(); // manually report that no internet connection is available
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -260,7 +266,7 @@ public class NotificationService extends Service {
 					|| (key.equals(getString(R.string.refresh_id)) && sharedPreferences.getBoolean(key, false))) {
 				requestUpdate();
 				
-				PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putBoolean(getString(R.string.refresh_id), false).apply();
+				PreferenceManager.getDefaultSharedPreferences(NotificationService.this).edit().putBoolean(getString(R.string.refresh_id), false).apply();
 			}
 		}
 	}
@@ -273,16 +279,5 @@ public class NotificationService extends Service {
 	@Override
 	public IBinder onBind(Intent intent) {
 		return null;
-	}
-	
-	public static void copyInputStream(InputStream is, OutputStream out) throws Exception {
-		byte[] buffer = new byte[2048];
-		int len = is.read(buffer);
-		while (len != -1) {
-			out.write(buffer, 0, len);
-			len = is.read(buffer);
-		}
-		is.close();
-		out.close();
 	}
 }

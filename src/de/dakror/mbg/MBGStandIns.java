@@ -9,11 +9,14 @@ import java.util.Set;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
@@ -49,11 +52,17 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 	 * @author Maximilian Stark | Dakror
 	 */
 	public static class SettingsActivity extends Activity {
-		
 		@Override
 		public void onCreate(Bundle savedInstanceState) {
 			super.onCreate(savedInstanceState);
 			setContentView(R.layout.acitivity_settings);
+		}
+		
+		@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+		@Override
+		public boolean onNavigateUp() {
+			doWarnings(this, false);
+			return super.onNavigateUp();
 		}
 	}
 	
@@ -79,10 +88,10 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		}
 		PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
 		
-		String pwd = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.password_id), null);
-		String courses = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.courses_id), null);
+		String pwd = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.password_id), "");
+		String courses = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.courses_id), "");
 		
-		if (pwd == null || courses == null) {
+		if (pwd.length() == 0 || courses.length() == 0) {
 			Intent intent = new Intent(this, SettingsActivity.class);
 			startActivity(intent);
 		}
@@ -98,28 +107,27 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
+			case R.id.menu_refresh:
+				onRefresh();
+				break;
 			case R.id.settings:
 				Intent intent = new Intent(this, SettingsActivity.class);
 				startActivity(intent);
-			default:
-				return super.onOptionsItemSelected(item);
+				break;
 		}
+		return super.onOptionsItemSelected(item);
 	}
 	
 	JSONObject data;
 	
 	public void makeTable() throws JSONException {
-		if (!Util.hasConnection(this)) {
-			Toast.makeText(getApplicationContext(), "Nicht mit dem Internet verbunden. Vertretungsplan konnte nicht aktualisiert werden.", Toast.LENGTH_LONG).show();
-		}
-		
 		Set<StandIn> set = new HashSet<StandIn>();
 		final ListView listView = (ListView) findViewById(R.id.standins_list);
 		
 		String standins = PreferenceManager.getDefaultSharedPreferences(this).getString(getString(R.string.standins_is), null);
 		if (standins != null) {
 			data = new JSONObject(standins);
-			if (doWarnings()) set.addAll(Util.loadStandIns(data.getJSONArray("courses")));
+			if (doWarnings(this, false)) set.addAll(Util.loadStandIns(data.getJSONArray("courses")));
 		}
 		
 		final ArrayList<StandIn> list = new ArrayList<StandIn>(set);
@@ -198,27 +206,35 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 				e.printStackTrace();
 			}
 		} else {
-			doWarnings();
+			doWarnings(this, false);
 		}
 	}
 	
-	public boolean doWarnings() {
-		boolean pwd = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(getString(R.string.password_id), null) != null;
-		boolean crs = Util.getCourses(this).length() > 0;
+	public static boolean doWarnings(Context ctx, boolean inetToo) {
+		int err = PreferenceManager.getDefaultSharedPreferences(ctx).getInt(ctx.getString(R.string.error_id), 200);
+		boolean pwd = PreferenceManager.getDefaultSharedPreferences(ctx).getString(ctx.getString(R.string.password_id), "").length() > 0;
+		boolean crs = Util.getCourses(ctx).length() > 0;
+		boolean inet = Util.hasConnection(ctx);
+		String msg = "";
 		
-		if (!pwd && !crs) {
-			Toast.makeText(getApplicationContext(), "Bitte geben Sie das Passwort und ihre Klassen / Kurse an.", Toast.LENGTH_LONG).show();
-		} else if (!pwd) {
-			Toast.makeText(getApplicationContext(), "Bitte geben Sie das Passwort ein.", Toast.LENGTH_SHORT).show();
-		} else if (!crs) {
-			Toast.makeText(getApplicationContext(), "Bitte geben Sie ihre Klassen / Kurse an.", Toast.LENGTH_SHORT).show();
+		if (err == 401) msg = "Das von Ihnen eingegebene Passwort ist falsch.";
+		else if (!pwd) msg = "Bitte geben Sie das Passwort ein.";
+		
+		if (!crs) msg += "Bitte geben Sie Ihre Klassen / Kurse an.";
+		
+		if ((!inet || err == 199) && inetToo) msg = "Nicht mit dem Internet verbunden. Vertretungsplan konnte nicht aktualisiert werden.";
+		if (err != 200 && err != 199) msg = "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.";
+		
+		if (msg.length() > 0) {
+			Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
 		}
 		
-		return pwd && crs;
+		return pwd && crs && inet;
 	}
 	
 	@Override
 	public void onRefresh() {
-		PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putBoolean(getString(R.string.refresh_id), true).apply();
+		if (doWarnings(this, true)) PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean(getString(R.string.refresh_id), true).apply();
+		else refreshLayout.setRefreshing(false);
 	}
 }

@@ -5,9 +5,6 @@
     <string name="settings">Einstellungen</string>
     <string name="courses">Kurse / Klassen</string>
     <string name="courses_summary">Deine Kurse / Klassen. Mit Komma trennen.</string>
-    <string name="courses_id">courses</string>
-    <string name="password_id">password</string>
-    <string name="refresh_id">refresh</string>
     <string name="password">Passwort</string>
     <string name="password_summary">Das Passwort, um den Vertretungsplan abzurufen.</string>
     <string name="standins_is">standins</string>
@@ -18,4 +15,10 @@
     <string name="subject">Fach</string>
     <string name="room">Raum</string>
     <string name="menu_refresh">Aktualisieren</string>
+    <!-- Data transfer strings -->
+    <string name="courses_id">courses</string>
+    <string name="password_id">password</string>
+    <string name="refresh_id">refresh</string>
+    <string name="error_id">error</string>
+
 </resources>
