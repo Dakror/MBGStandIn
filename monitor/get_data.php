@@ -1,5 +1,5 @@
 <?php
-$source = parse_ini_file("../../../log/log.ini", true);
+$source = parse_ini_file("../log/log.ini", true);
 
 $dest = array();
 $keys = array_keys($source);

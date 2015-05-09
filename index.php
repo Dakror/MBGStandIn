@@ -7,7 +7,7 @@ error_reporting(-1);
  */
 require_once "vendor/autoload.php";
 
-require_once "php/Dakror/StandInParser/StandInParser.php";
+require_once "standinparser/StandInParser.php";
 
 header('Content-Type: text/html; charset=utf-8');
 
