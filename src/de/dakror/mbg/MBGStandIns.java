@@ -223,11 +223,13 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		if (!crs) msg += "Bitte geben Sie Ihre Klassen / Kurse an.";
 		
 		if ((!inet || err == 199) && inetToo) msg = "Nicht mit dem Internet verbunden. Vertretungsplan konnte nicht aktualisiert werden.";
-		if (err != 200 && err != 199) msg = "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.";
+		if (err != 200 && msg.length() == 0) msg = "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.";
 		
 		if (msg.length() > 0) {
 			Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
 		}
+		
+		PreferenceManager.getDefaultSharedPreferences(ctx).edit().putInt(ctx.getString(R.string.error_id), 200).apply(); // reset error code
 		
 		return pwd && crs && inet;
 	}
