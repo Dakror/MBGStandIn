@@ -18,6 +18,31 @@ function _die($code) {
 	die($codes[$code]);
 }
 
+
+###################################
+###################################
+
+$SRC = $_SERVER["HTTP_HOST"] == "localhost" ? $_GET : $_POST;
+
+$src_courses = @$SRC["courses"]; // comma-separated
+$pwd = @$SRC["pwd"];
+$debug = array_key_exists("debug", $SRC);
+
+if(!$pwd || !$src_courses) _die(400);
+
+###################################
+###################################
+
+
+define("__DEBUG__", $debug);
+
+$DEBUG_TABLE = array();
+
+function d_echo($msg) {
+	global $DEBUG_TABLE;
+	array_push($DEBUG_TABLE, $msg);
+}
+
 function isAprilFools() {
 	$now = getdate();
 	return $now["mday"] == 1 && $now["mon"] == 4;
@@ -33,44 +58,16 @@ function getAndroidVersion() {
 	return -1;
 }
 
-function _log($string) {
-	file_put_contents("log/log.ini", $string, FILE_APPEND);
-}
+$db = new SQLite3("log/log.db");
 
-function logTime() {
-	global $start;
-	_log("duration[] = ".((microtime(true) - $start) * 1000)."\r\n");
-}
-
-/**
- *
- * Seperated by ',':
- * 1D4,10D,5A
- *
- */
-$courses = @$_POST["courses"];
-$pwd = @$_POST["pwd"];
-$debug = array_key_exists("debug", $_POST);
-
-if(!$pwd || !$courses) _die(400);
-
-define("__DEBUG__", $debug);
-
-$DEBUG_TABLE = array();
-
-function d_echo($msg) {
-	global $DEBUG_TABLE;
-	array_push($DEBUG_TABLE, $msg);
-}
+$db->exec("CREATE TABLE IF NOT EXISTS LOG (TIMESTAMP int, VERSION float, PASSWD boolean, DURATION int, COURSES varchar(50))");
 
 $parser = new StandInParser();
 
 $pwdRight = $parser->checkPassword($pwd); 
 
-_log("version[] = ".getAndroidVersion()."\r\ntimestamp[] = ".(microtime(true) * 1000)."\r\ncourses[] = $courses\r\npassword[] = ".($pwdRight?"true":"false")."\r\n");
-
 if(!$pwdRight) {
-	logTime();
+	$db->exec("INSERT INTO LOG VALUES(".time().", ".getAndroidVersion().", 0, ".intval((microtime(true) - $start) * 1000).", \"".strtoupper($src_courses)."\")");
 	_die(401);
 }
 		
@@ -81,7 +78,7 @@ $parser->update($pwd);
 
 $table = $parser->load();
 
-$courses = Course::toCourseArray(strtoupper($courses));
+$courses = Course::toCourseArray(strtoupper($src_courses));
 
 $standins = $table->getRelevantStandIns($courses);
 
@@ -91,5 +88,5 @@ if($table->info) $arr["info"] = $table->info;
 if($debug) $arr["debug"] = $DEBUG_TABLE;
 
 echo json_encode($arr);
-logTime();
+$db->exec("INSERT INTO LOG VALUES(".time().", ".getAndroidVersion().", 1, ".intval((microtime(true) - $start) * 1000).", \"".strtoupper($src_courses)."\")");
 ?>
