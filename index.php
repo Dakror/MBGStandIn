@@ -82,8 +82,7 @@ if($table->info) $arr["info"] = $table->info;
 
 if($debug) $arr["debug"] = $DEBUG_TABLE;
 
-echo "<pre>";// @DEBUG .json_encode($arr);
+echo json_encode($arr);
 
-print_r($arr);
 $db->exec("INSERT INTO LOG VALUES(".time().", ".getAndroidVersion().", 1, ".intval((microtime(true) - $start) * 1000).", \"".strtoupper($src_courses)."\")");
 ?>

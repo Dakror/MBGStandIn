@@ -116,7 +116,7 @@ class StandInParser {
 	
 	public function update($password) {
 		$this->_update(true, $password);
-		//$this->_update(false, $password);
+		$this->_update(false, $password);
 	}
 	
 	public function parse($text, $existing_table = null, $skipHeader = false) {
