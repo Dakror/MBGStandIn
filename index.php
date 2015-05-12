@@ -43,11 +43,6 @@ function d_echo($msg) {
 	array_push($DEBUG_TABLE, $msg);
 }
 
-function isAprilFools() {
-	$now = getdate();
-	return $now["mday"] == 1 && $now["mon"] == 4;
-}
-
 function getAndroidVersion() {
 	if ($c = preg_match_all("/.*?(Android).*?([+-]?\\d*\\.\\d+)(?![-+0-9\\.])/is", $_SERVER["HTTP_USER_AGENT"], $matches)) {
       $word1=$matches[1][0];
@@ -87,6 +82,8 @@ if($table->info) $arr["info"] = $table->info;
 
 if($debug) $arr["debug"] = $DEBUG_TABLE;
 
-echo json_encode($arr);
+echo "<pre>";// @DEBUG .json_encode($arr);
+
+print_r($arr);
 $db->exec("INSERT INTO LOG VALUES(".time().", ".getAndroidVersion().", 1, ".intval((microtime(true) - $start) * 1000).", \"".strtoupper($src_courses)."\")");
 ?>

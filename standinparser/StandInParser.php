@@ -116,7 +116,7 @@ class StandInParser {
 	
 	public function update($password) {
 		$this->_update(true, $password);
-		$this->_update(false, $password);
+		//$this->_update(false, $password);
 	}
 	
 	public function parse($text, $existing_table = null, $skipHeader = false) {
@@ -138,7 +138,7 @@ class StandInParser {
 		
 		$list_started = false;
 		
-		$standin;
+		$standin = null;
 		
 		while ($tok !== false) {
 			$p = explode(" ", $tok);
@@ -194,7 +194,6 @@ class StandInParser {
 									$standin->free = true;
 								} else {
 									$standin->replacer = $e;
-									if($standin->replacer == "ade" && isAprilFools()) $standin->replacer = "Christiane";
 								}
 								break;
 							}
@@ -228,10 +227,10 @@ class StandInParser {
 					
 					$table->addStandIn($standin);
 				}
-			} elseif (strpos($tok, "Klasse") === 0) {
+			} elseif (strpos($tok, "Klasse Stunde Entfall") === 0) { // Bugfix 12.05.15 - info text line starting with 'Klassen, die an'
 				$list_started = true;
 			} elseif (!$skipHeader) {
-				$table->info.=" $tok";
+				$table->info.=str_replace("  ", " ", trim($tok))." "; // Bugfix 12.05.15 - double space
 			}
 			
 			$tok = strtok($d);
