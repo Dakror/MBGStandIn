@@ -214,7 +214,7 @@ public class MBGStandIns extends Activity implements OnSharedPreferenceChangeLis
 		int err = PreferenceManager.getDefaultSharedPreferences(ctx).getInt(ctx.getString(R.string.error_id), 200);
 		boolean pwd = PreferenceManager.getDefaultSharedPreferences(ctx).getString(ctx.getString(R.string.password_id), "").length() > 0;
 		boolean crs = Util.getCourses(ctx).length() > 0;
-		boolean inet = Util.hasConnection(ctx);
+		boolean inet = inetToo ? Util.hasConnection(ctx) : true;
 		String msg = "";
 		
 		if (err == 401) msg = "Das von Ihnen eingegebene Passwort ist falsch.";

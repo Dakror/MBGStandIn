@@ -15,10 +15,12 @@
     <string name="subject">Fach</string>
     <string name="room">Raum</string>
     <string name="menu_refresh">Aktualisieren</string>
+    <string name="about">Über diese App</string>
     <!-- Data transfer strings -->
     <string name="courses_id">courses</string>
     <string name="password_id">password</string>
     <string name="refresh_id">refresh</string>
     <string name="error_id">error</string>
+    <string name="about_id">about</string>
 
 </resources>

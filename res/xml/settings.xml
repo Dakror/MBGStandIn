@@ -2,7 +2,5 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
     <EditTextPreference android:key="@string/password_id" android:title="@string/password" android:summary="@string/password_summary" android:inputType="textPassword"/>
     <EditTextPreference android:title="@string/courses" android:summary="@string/courses_summary" android:key="@string/courses_id"/>
-    
-    
-
+    <Preference android:title="@string/about" android:key="@string/about_id" />
 </PreferenceScreen>

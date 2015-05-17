@@ -93,7 +93,7 @@ public class NotificationService extends Service {
 		}
 		
 		public JSONObject fetchData() throws Exception {
-			URL url = new URL("http://dakror.de/MBGStandIns/index.php");
+			URL url = new URL("http://dakror.de/MBGStandIns/index.php"); //
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("POST");
 			conn.setDoOutput(true);
@@ -106,7 +106,7 @@ public class NotificationService extends Service {
 			byte[] md5 = md.digest(pwd.getBytes());
 			BigInteger bi = new BigInteger(md5);
 			
-			String body = "courses=" + Util.getCourses(NotificationService.this) + "&pwd=" + bi.toString(16);
+			String body = "courses=" + Util.getCourses(NotificationService.this) + "&pwd=" + bi.toString(16) + "&debug";
 			conn.setRequestProperty("Content-Length", String.valueOf(body.length()));
 			
 			OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
